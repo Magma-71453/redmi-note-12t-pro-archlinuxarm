@@ -10,6 +10,8 @@ DPMS = '/sys/class/drm/card0-DSI-1/dpms'
 WLOpm = '/usr/bin/wlopm'
 OUTPUT = 'DSI-1'
 _last_toggle = 0.0
+_ignore_until = 0.0
+_boot_delta = None
 
 def find_power_events():
     """Return event device paths that may deliver KEY_POWER."""
@@ -51,6 +53,8 @@ def wayland_env():
 def toggle():
     global _last_toggle
     now = time.monotonic()
+    if now < _ignore_until:
+        return
     if now - _last_toggle < 1.0:
         return
     _last_toggle = now
@@ -74,7 +78,17 @@ def main():
     if not fds:
         raise SystemExit('pearl-powerkey: no event device')
     print('pearl-powerkey: listening on %s' % ', '.join(fds.values()), flush=True)
+    global _ignore_until, _boot_delta
     while True:
+        try:
+            bt = time.clock_gettime(time.CLOCK_BOOTTIME)
+            mt = time.clock_gettime(time.CLOCK_MONOTONIC)
+            delta = bt - mt
+            if _boot_delta is not None and delta - _boot_delta > 1.0:
+                _ignore_until = mt + 4.0
+            _boot_delta = delta
+        except (AttributeError, OSError):
+            pass
         ready, _, _ = select.select(list(fds.keys()), [], [], 1.0)
         for fd in ready:
             try:
