@@ -1,0 +1,16 @@
+/downloads/*
+/build/*
+/out/*
+/logs/*
+!/downloads/.gitkeep
+!/build/.gitkeep
+!/out/.gitkeep
+!/logs/.gitkeep
+*.tmp
+*.part
+*.log
+*.key
+*.pem
+*.pk8
+*.p12
+.ssh/
