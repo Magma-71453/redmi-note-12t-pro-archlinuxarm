@@ -5,7 +5,7 @@ set -euo pipefail
 source "$(dirname "$0")/00-env.sh"
 K="$REPO/build/linux-mt6895/arch/arm64/boot/Image.gz"
 R="$KERNEL_ASSET_DIR/initramfs-final.cpio.lz4"
-D="$KERNEL_ASSET_DIR/pearl.dtb"
+D="${DTB_OVERRIDE:-$KERNEL_ASSET_DIR/pearl.dtb}"
 [ -f "$K" ] || die "new kernel missing: $K"
 [ -f "$R" ] || die "initramfs missing: $R"
 [ -f "$D" ] || die "dtb missing: $D"
