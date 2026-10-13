@@ -19,10 +19,10 @@ for f in \
   "$OUT/$ROOTFS_IMAGE_NAME.zst" \
   "$OUT/boot_b-Test.img" \
   "$OUT/vendor_boot_b-Test.img" \
-  "$ART/kernel-7.2.9+/Image.gz" \
-  "$ART/kernel-7.2.9+/initramfs-final.cpio.lz4" \
-  "$ART/kernel-7.2.9+/pearl.dtb" \
-  "$ART/kernel-7.2.9+/config" \
+  "$KERNEL_ASSET_DIR/Image.gz" \
+  "$KERNEL_ASSET_DIR/initramfs-final.cpio.lz4" \
+  "$KERNEL_ASSET_DIR/pearl.dtb" \
+  "$KERNEL_ASSET_DIR/config" \
   "$ART/Test/MANIFEST.txt" \
   "$ART/Test/packages-pacmanQ-Test.txt"; do
   need "$f"

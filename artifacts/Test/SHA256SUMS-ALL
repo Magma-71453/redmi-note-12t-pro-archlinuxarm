@@ -1,5 +1,5 @@
-e34ae45d3f0cc19dfc72e24e9dfe4927f5f1317fe269f675fb18ddb135734fde  out/Test/boot_b-Test.img
+3504ff7b6deae83a6e931fdd72a6cf631a0f6cec10be558b2ae1d7165e524ffe  out/Test/boot_b-Test.img
 0711787da078283c41b6c5277d1c211ee59e142e28ddf7ea8e1eca196b5cb26e  out/Test/vendor_boot_b-Test.img
-f9a5e2be3dfbac0e7a4af3ac060b20f37db6c08248a0760be47b3dcd25f972a0  out/Test/pearl-linux-rootfs-Test.img
-e3778248aa599f19d5778f4022afe4bf4aa0d77a5bd05934460a72ec7812e1cf  out/Test/pearl-linux-rootfs-Test.img.zst
-265f388e2527ff14eec9acf2b7fa85c2147db564ee3a5f9d0bbef0677af9cedb  out/Test/MANIFEST.txt
+1497af65ea088a15cb0a314dd2c48d27ca94915b27f3087e808bc97b1d30f4dd  out/Test/pearl-linux-rootfs-Test.img
+bd9228e9a661a0a4daa0b242ed5ce2e67137ea01a1778e9e10962bbe39cb0449  out/Test/pearl-linux-rootfs-Test.img.zst
+91ec99fe376f21c2d4c3d32f9307cc153abb732447ccfd824e9ee09eed2fb119  out/Test/MANIFEST.txt

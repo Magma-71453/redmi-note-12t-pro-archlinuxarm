@@ -16,7 +16,7 @@ ROOTFS_DIR="$BUILD/rootfs-$VERSION_TITLE"
 
 mkdir -p "$BUILD" "$OUT" "$ART" "$DOWNLOADS" "$LOGS"
 
-KERNEL_ASSET_DIR="$ART/kernel-${KERNEL_SERIES}.9+"
+KERNEL_ASSET_DIR="$ART/${KERNEL_ASSET_DIR_NAME:-kernel-${KERNEL_SERIES}.9+}"
 
 log() { printf '[%s] %s\n' "$(date -u +%H:%M:%S)" "$*"; }
 die() { printf 'ERROR: %s\n' "$*" >&2; exit 1; }

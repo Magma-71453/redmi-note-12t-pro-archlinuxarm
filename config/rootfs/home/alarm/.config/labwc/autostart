@@ -1,0 +1,3 @@
+/usr/local/bin/pearl-panel >/home/alarm/pearl-panel.log 2>&1 &
+/usr/bin/wvkbd-mobintl -H 716 >/home/alarm/wvkbd.log 2>&1 &
+/usr/bin/kitty --single-instance --start-as=maximized >/home/alarm/kitty.log 2>&1 &

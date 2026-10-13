@@ -1,0 +1,12 @@
+[Unit]
+Description=Pearl power key to panel DPMS toggle
+After=multi-user.target
+[Service]
+Type=simple
+ExecStart=/usr/local/bin/pearl-powerkey.py
+Restart=always
+RestartSec=2
+StandardOutput=journal
+StandardError=journal
+[Install]
+WantedBy=multi-user.target
