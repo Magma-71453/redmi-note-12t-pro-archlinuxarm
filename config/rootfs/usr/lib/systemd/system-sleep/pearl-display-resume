@@ -1,0 +1,17 @@
+#!/bin/sh
+# Re-init the pearl DSI panel after resume; otherwise the vendor display
+# controller can stay in an underrun/white-screen state.
+case "$1" in
+  post)
+    for i in $(seq 1 50); do
+      [ -S /run/user/1000/wayland-0 ] && break
+      sleep 0.1
+    done
+    export XDG_RUNTIME_DIR=/run/user/1000
+    export WAYLAND_DISPLAY=wayland-0
+    /usr/bin/wlopm --off DSI-1 2>/dev/null
+    sleep 0.3
+    /usr/bin/wlopm --on DSI-1 2>/dev/null
+    ;;
+esac
+exit 0
