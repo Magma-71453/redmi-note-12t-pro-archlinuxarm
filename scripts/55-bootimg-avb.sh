@@ -23,13 +23,15 @@ cp -f "$OUTDIR/boot_b-Test-osver.img" "$OUTDIR/boot_b-Test-avb.img"
 avbtool add_hash_footer --image "$OUTDIR/boot_b-Test-avb.img" \
   --partition_size 0x4000000 --partition_name boot \
   --hash_algorithm sha256 --algorithm NONE \
+  --salt 00112233445566778899aabbccddeeff \
   --prop com.android.build.boot.os_version:16
 
 log "add AVB hash footer: vendor_boot_b"
 cp -f "$OUT/vendor_boot_b-Test.img" "$OUTDIR/vendor_boot_b-Test-avb.img"
 avbtool add_hash_footer --image "$OUTDIR/vendor_boot_b-Test-avb.img" \
   --partition_size 0x4000000 --partition_name vendor_boot \
-  --hash_algorithm sha256 --algorithm NONE
+  --hash_algorithm sha256 --algorithm NONE \
+  --salt ffeeddccbbaa99887766554433221100
 
 log "verify images"
 for f in "$OUTDIR/boot_b-Test-avb.img" "$OUTDIR/vendor_boot_b-Test-avb.img"; do
