@@ -57,8 +57,7 @@ downloads/  上游源码/rootfs 缓存（gitignore）
 ## 构建命令（概要）
 
 ```bash
-# 0. 准备目录与内核资产
-scripts/00-env.sh
+# 0. 准备目录与内核资产（脚本会自行 source 00-env.sh）
 scripts/10-recover-modules.sh
 scripts/20-kernel-assets.sh
 

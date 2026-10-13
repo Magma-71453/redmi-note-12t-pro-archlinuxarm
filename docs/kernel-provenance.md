@@ -1,5 +1,8 @@
 # Test 内核来源与真实性说明
 
+> 当前 Test 内核：**7.2.10++**（pearl 分支，见文件末尾更新）。
+> 下文 7.2.9+ 描述为早期基线/历史来源，保留用于追溯。
+
 ## 为什么不是从 kernel.org 的 mainline 直接编译
 
 `linux-7.2.10` mainline 源码（`arch/arm64/boot/dts/mediatek/`）里**没有 MT6895/pearl DTS**，
@@ -48,7 +51,7 @@ CONFIG_F2FS_FS=y
 - commit：`a908b7825c7d619873392e5fbbcba2e54695d0eb`
 - 构建：`scripts/kernel-build-gadget.sh`（`build/linux-mt6895`）
 - 配置：`artifacts/kernel-7.2.10++/config`
-  - 以旧 `artifacts/kernel-7.2.9+/config` 为底
+  - 以旧 7.2.9+ 基线 config（已不在当前树，见 git 历史）为底
   - 合并 `arch/arm64/configs/pearl.config`：`CONFIG_MTK_DVFSRC=y`、
     `CONFIG_INTERCONNECT_MTK*`（MMQOS/EMI）等，修复显示组件长期
     `supplier soc@0:interconnect not ready` 导致 `mediatek-drm` 不注册的问题
