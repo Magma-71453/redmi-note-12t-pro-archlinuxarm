@@ -31,7 +31,7 @@ cat > /etc/pearl-linux-release <<RELEASE
 NAME="pearl-linux"
 VERSION="${VERSION_TITLE}"
 ID=pearl-linux
-PRETTY_NAME="pearl-linux Test (Arch Linux ARM, 7.2.9+ kernel)"
+PRETTY_NAME="pearl-linux Test (Arch Linux ARM, 7.2.10++ kernel)"
 HOME_URL="https://archlinuxarm.org/"
 BUILD_DATE="${BUILD_ID}"
 RELEASE
@@ -82,7 +82,15 @@ rm -f "/home/$PRIMARY_USER/$PRIMARY_USER"   # 清理早期脚本误建的 self s
 cp -a /etc/skel/. "/home/$PRIMARY_USER/" 2>/dev/null || true
 # initramfs-final 会尝试修正 /home/alarm 属主；保留一个兼容符号链接
 ln -sfn "/home/$PRIMARY_USER" /home/mobian
-printf '%s:pearl\nroot:CHANGE_ME_AT_BUILD\n' "$PRIMARY_USER" | chpasswd
+# 密码来自构建时生成的临时文件（out/Test/rootfs-password.txt，gitignore）。
+# 仓库内不再硬编码默认密码。
+if [ ! -s /tmp/pearl-root-password ]; then
+  echo "ERROR: /tmp/pearl-root-password missing; set ROOTFS_PASSWORD when running 30-rootfs.sh" >&2
+  exit 1
+fi
+PRIMARY_PASSWORD="$(cat /tmp/pearl-root-password)"
+rm -f /tmp/pearl-root-password
+printf '%s:%s\nroot:%s\n' "$PRIMARY_USER" "$PRIMARY_PASSWORD" "$PRIMARY_PASSWORD" | chpasswd
 cat > /etc/tmpfiles.d/pearl-home.conf <<'TMPFILES'
 Z /home/alarm 0755 1000 1000 -
 z /var/lib/docker 0710 root docker -

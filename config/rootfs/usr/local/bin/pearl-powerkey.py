@@ -83,9 +83,7 @@ def main():
                 continue
             for off in range(0, len(data) - EVENT.size + 1, EVENT.size):
                 _sec, _usec, typ, code, val = EVENT.unpack(data[off:off + EVENT.size])
-                if typ == EV_KEY:
-                    print('pearl-powerkey: key code=%d val=%d' % (code, val), flush=True)
-                    if code == KEY_POWER and val == 1:
+                if typ == EV_KEY and code == KEY_POWER and val == 1:
                         try:
                             toggle()
                         except Exception as exc:

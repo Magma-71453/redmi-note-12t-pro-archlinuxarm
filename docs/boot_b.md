@@ -3,7 +3,7 @@
 ## 目标与实现
 
 - `boot_a`：Android，保持原样，继续挂载 `/dev/sdc86` userdata。
-- `boot_b`：Linux Test，内核 7.2.9+ + initramfs-final，挂载 `/dev/sdc88` 的
+- `boot_b`：Linux Test，内核 7.2.10++ + initramfs-final，挂载 `/dev/sdc88` 的
   `/etc/mt6895-rootfs` 分区为根（当前 rootfs label=`archpearl`，ext4）。
 - `vendor_boot_b`：提供 pearl DTB，vendor cmdline 为
   `bootopt=64S3,32N2,64N2 androidboot.selinux=permissive`。
