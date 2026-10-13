@@ -9,8 +9,8 @@
 set -uo pipefail
 REPO="$(cd "$(dirname "$0")/.." && pwd)"
 MTK="${MTK:-$REPO/build/mtk-venv/bin/mtk}"
-PRELOADER="${PRELOADER:-$HOME/下载/pearl-MTK验证文件/1-官方ROM提取/preloader_pearl.bin}"
-LOADER="${LOADER:-$HOME/下载/pearl-MTK验证文件/1-官方ROM提取/DA_BR.bin}"
+PRELOADER="/mnt/Users/magma/Downloads/pearl_images_OS2.0.207.0.VLHCNXM_15.0/images/preloader_pearl.bin"
+LOADER="/mnt/Users/magma/Downloads/pearl_images_OS2.0.207.0.VLHCNXM_15.0/images/download_agent/DA_BR.bin"
 MISC_A="${MISC_A:-$HOME/下载/pearl-刷机文件/1-Android恢复-slotA/misc-slot-a.img}"
 MISC_STOCK="${MISC_STOCK:-$HOME/下载/pearl-刷机文件/3-原厂分区备份/misc.img}"
 WAIT=0
@@ -18,6 +18,11 @@ WAIT=0
 
 is_preloader() { lsusb 2>/dev/null | grep -q '0e8d:2000'; }
 is_brom()      { lsusb 2>/dev/null | grep -q '0e8d:0003'; }
+
+# mtkclient 2.1.4/v6 DA patch：纯 UFS DA 没有 mmc_switch_part 符号会崩。
+if [ -f "$REPO/build/mtk-venv" ]; then
+  python3 "$REPO/scripts/patch-mtkclient-v6.py" >/dev/null 2>&1 || true
+fi
 
 echo "== pearl slot A recovery (misc only) =="
 echo "mtk       : $MTK"
@@ -61,13 +66,13 @@ TXT
 fi
 
 echo "==> 写入 misc-slot-a.img（强制 A 槽 active+successful）"
-"$MTK" w misc "$MISC_A" --preloader "$PRELOADER" --loader "$LOADER"
+"$MTK" w misc "$MISC_A" --preloader $PRELOADER --loader "$LOADER"
 rc=$?
 echo "mtk_write_rc=$rc"
 
 if [ "$rc" -ne 0 ] && [ -f "$MISC_STOCK" ]; then
   echo "首次写入失败，尝试 stock misc.img ..."
-  "$MTK" w misc "$MISC_STOCK" --preloader "$PRELOADER" --loader "$LOADER"
+  "$MTK" w misc "$MISC_STOCK" --preloader $PRELOADER --loader "$LOADER"
   rc=$?
   echo "mtk_write_stock_rc=$rc"
 fi

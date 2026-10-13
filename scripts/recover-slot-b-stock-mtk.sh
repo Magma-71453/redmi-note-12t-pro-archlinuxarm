@@ -3,6 +3,10 @@
 # 需要设备处于 preloader 模式（0e8d:2000）。
 set -uo pipefail
 REPO="$(cd "$(dirname "$0")/.." && pwd)"
+if [ -f "$REPO/build/mtk-venv" ]; then
+  python3 "$REPO/scripts/patch-mtkclient-v6.py" >/dev/null 2>&1 || true
+fi
+REPO="$(cd "$(dirname "$0")/.." && pwd)"
 MTK="${MTK:-$REPO/build/mtk-venv/bin/mtk}"
 PRELOADER="${PRELOADER:-$HOME/下载/pearl-MTK验证文件/1-官方ROM提取/preloader_pearl.bin}"
 LOADER="${LOADER:-$HOME/下载/pearl-MTK验证文件/1-官方ROM提取/DA_BR.bin}"
