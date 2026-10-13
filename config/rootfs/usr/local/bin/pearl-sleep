@@ -1,0 +1,15 @@
+#!/bin/sh
+# Pearl "safe suspend": blank the panel and drop CPU to powersave without
+# entering s2idle.  The mainline MT6895 display pipeline cannot reliably
+# resume from system suspend yet (white DSI panel), while this keeps RAM,
+# processes and data intact and wakes instantly on the power key.
+export XDG_RUNTIME_DIR=/run/user/1000
+export WAYLAND_DISPLAY=wayland-0
+
+/usr/bin/wlopm --off DSI-1 2>/dev/null || true
+
+for g in /sys/devices/system/cpu/cpufreq/policy*/scaling_governor; do
+    [ -w "$g" ] && echo powersave > "$g" 2>/dev/null || true
+done
+
+exit 0

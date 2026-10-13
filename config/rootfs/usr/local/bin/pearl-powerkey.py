@@ -64,6 +64,13 @@ def toggle():
         state = 'On'
     action = '--off' if state == 'On' else '--on'
     print('pearl-powerkey: %s -> %s %s' % (state, action, OUTPUT), flush=True)
+    if action == '--on':
+        import glob
+        for g in glob.glob('/sys/devices/system/cpu/cpufreq/policy*/scaling_governor'):
+            try:
+                open(g, 'w').write('schedutil\n')
+            except OSError:
+                pass
     subprocess.run([WLOpm, action, OUTPUT], env=wayland_env(), check=False)
 
 def main():
