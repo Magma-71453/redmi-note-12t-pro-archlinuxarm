@@ -11,8 +11,11 @@ install -m644 "$CFG/home/alarm/.config/kitty/kitty.conf"        "$R/home/alarm/.
 install -m755 "$CFG/home/alarm/.config/labwc/autostart"         "$R/home/alarm/.config/labwc/autostart"
 install -m755 "$CFG/usr/local/bin/pearl-powerkey.py"            "$R/usr/local/bin/pearl-powerkey.py"
 install -m644 "$CFG/etc/systemd/system/pearl-powerkey.service"  "$R/etc/systemd/system/pearl-powerkey.service"
+install -m644 "$CFG/etc/systemd/system/pearl-labwc.service"     "$R/etc/systemd/system/pearl-labwc.service"
 install -m644 "$CFG/etc/systemd/system/pearl-usb-console.service" "$R/etc/systemd/system/pearl-usb-console.service" 2>/dev/null || true
 install -m644 "$CFG/etc/systemd/system/pearl-usb-gadget.service"  "$R/etc/systemd/system/pearl-usb-gadget.service" 2>/dev/null || true
 install -m644 "$CFG/etc/systemd/logind.conf.d/10-pearl-power.conf" "$R/etc/systemd/logind.conf.d/10-pearl-power.conf"
 ln -sfn /etc/systemd/system/pearl-powerkey.service "$R/etc/systemd/system/multi-user.target.wants/pearl-powerkey.service"
+ln -sfn /etc/systemd/system/pearl-labwc.service    "$R/etc/systemd/system/multi-user.target.wants/pearl-labwc.service"
+rm -f "$R/etc/systemd/system/getty.target.wants/getty@tty1.service"
 echo "installed pearl desktop configs into $R"
