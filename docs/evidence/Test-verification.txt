@@ -1,0 +1,105 @@
+== git ==
+db314b2
+OK   git tag Test
+OK   git worktree clean
+== artifact files ==
+OK   out/Test/pearl-linux-rootfs-Test.img
+OK   out/Test/pearl-linux-rootfs-Test.img.zst
+OK   out/Test/boot_b-Test.img
+OK   out/Test/vendor_boot_b-Test.img
+OK   artifacts/kernel-7.2.9+/Image.gz
+OK   artifacts/kernel-7.2.9+/initramfs-final.cpio.lz4
+OK   artifacts/kernel-7.2.9+/pearl.dtb
+OK   artifacts/kernel-7.2.9+/config
+OK   artifacts/Test/MANIFEST.txt
+OK   artifacts/Test/packages-pacmanQ-Test.txt
+== sha256 ==
+out/Test/pearl-linux-rootfs-Test.img: 成功
+out/Test/pearl-linux-rootfs-Test.img.zst: 成功
+out/Test/boot_b-Test.img: 成功
+out/Test/vendor_boot_b-Test.img: 成功
+== ext4 image ==
+OK   label=archpearl
+OK   filesystem clean
+OK   e2fsck clean
+== image key paths (debugfs) ==
+OK   image /etc/mt6895-rootfs
+OK   image /etc/os-release
+OK   image /etc/fstab
+OK   image /etc/pacman.conf
+OK   image /etc/pacman.d/gnupg/pubring.gpg
+OK   image /usr/lib/modules/7.2.9+/modules.dep
+OK   image /usr/bin/docker
+OK   image /usr/bin/dockerd
+OK   image /usr/bin/containerd
+OK   image /usr/bin/labwc
+OK   image /usr/bin/kitty
+OK   image /usr/bin/nvim
+OK   image /home/alarm/.config/labwc/autostart
+OK   image /home/alarm/.config/kitty/kitty.conf
+OK   image /home/alarm/.config/nvim/init.lua
+OK   image /etc/systemd/system/pearl-firstboot.service
+OK   image /etc/systemd/system/getty@tty1.service.d/autologin.conf
+OK   image /etc/systemd/system/multi-user.target.wants/docker.service
+OK   image /etc/systemd/system/multi-user.target.wants/sshd.service
+OK   image /etc/systemd/system/multi-user.target.wants/NetworkManager.service
+OK   image /etc/systemd/system/multi-user.target.wants/systemd-resolved.service
+== package list ==
+OK   package docker
+OK   package docker-compose
+OK   package labwc
+OK   package kitty
+OK   package neovim
+OK   package networkmanager
+OK   package openssh
+OK   package systemd
+OK   package zram-generator
+OK   package earlyoom
+== runtime versions / unit syntax (chroot, qemu-user) ==
+aarch64
+Docker version 29.9.0, build f415da838b
+Docker Compose version 5.6.0
+Docker version 29.9.0, build a5b58c94d3
+labwc 0.20.2 (+xwayland +nls +rsvg +libsfdo) wlroots-0.20.2
+kitty 0.49.2 created by Kovid Goyal
+NVIM v0.12.6
+systemd-verify-log-lines=1
+== boot images ==
+  boot magic: ANDROID!
+  kernel_size: 20345526
+  ramdisk size: 12977100
+  os version: None
+  os patch level: None
+  boot image header version: 4
+  command line args: 
+  boot.img signature size: 0
+  boot magic: VNDRBOOT
+  vendor boot image header version: 4
+  page size: 0x00001000
+  kernel load address: 0x40000000
+  ramdisk load address: 0x66f00000
+  vendor ramdisk total size: 12977100
+  vendor command line args: bootopt=64S3,32N2,64N2 androidboot.selinux=permissive
+  kernel tags load address: 0x47c80000
+  product name: 
+  vendor boot image header size: 2128
+  dtb size: 327327
+  dtb address: 0x0000000047c80000
+  vendor ramdisk table size: 108
+  vendor ramdisk table: [
+      vendor_ramdisk00: {
+          size: 12977100
+          offset: 0
+          type: 0x1
+          name: 
+          board_id: [
+              0x00000000, 0x00000000, 0x00000000, 0x00000000,
+              0x00000000, 0x00000000, 0x00000000, 0x00000000,
+              0x00000000, 0x00000000, 0x00000000, 0x00000000,
+              0x00000000, 0x00000000, 0x00000000, 0x00000000,
+          ]
+      }
+  ]
+  vendor bootconfig size: 0
+
+VERIFY_RESULT=PASS
