@@ -36,3 +36,21 @@
 - 内核 cmdline 追加 `quiet loglevel=3`（不再追加 `ignore_loglevel`），
   启动约 16s，无滚屏日志。
 - USB gadget 仍提供 ttyGS0 上的 root bash；Wi-Fi 上 sshd 提供 `alarm`/`root` 登录。
+
+## suspend / 休眠
+
+- `systemctl suspend` 已通过
+  `/etc/systemd/system/systemd-suspend.service.d/10-pearl-safe-suspend.conf`
+  重定向到 `/usr/local/bin/pearl-sleep`：
+  - 调用 `wlopm --off DSI-1` 熄屏；
+  - 将 CPU governor 切到 powersave；
+  - **不进入** `mem`/s2idle，因此不会触发 mainline DSI resume 的白屏问题；
+  - RAM、进程、数据全部保留。
+- 按电源键由 `pearl-powerkey.py` 调用 `wlopm --on DSI-1` 亮屏，并把 governor
+  恢复为 schedutil。
+- **不要**直接执行 `echo mem > /sys/power/state`：当前 mainline 显示驱动
+  resume 后 DSI/OVL 会 underrun，面板可能变白，需要 reboot/断电复位。
+- ttyGS0（USB gadget 控制台）已禁用：
+  `systemctl enable --now pearl-usb-gadget.service pearl-usb-console.service`
+  可临时恢复；内核已改为 dual-role，正常情况建议保持关闭，以免影响
+  充电和 USB 扩展坞。
