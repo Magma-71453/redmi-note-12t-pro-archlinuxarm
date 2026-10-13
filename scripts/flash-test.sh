@@ -1,49 +1,178 @@
 #!/usr/bin/env bash
-# 危险操作：把 Test 镜像写入真机。必须显式传入 --yes。
-# 保留 Android slot A 不动；最后刷 misc 把 slot B 设为 active。
-set -euo pipefail
+# Test Linux B 槽刷写（默认：先清 B 槽启动相关分区，再写全尺寸/AVB 镜像）。
+#
+# 用法:
+#   scripts/flash-test.sh --yes               # 刷 Test Linux（默认）
+#   scripts/flash-test.sh --yes --stock-b     # 只刷原厂 B 启动链，用于验证 B 槽是否健康
+#   scripts/flash-test.sh --yes --no-erase    # 不执行 fastboot erase（不推荐）
+#   scripts/flash-test.sh --yes --no-avb      # 使用小镜像（旧行为，不推荐）
+#   scripts/flash-test.sh --yes --skip-rootfs # 只刷 boot 链，不写 linux rootfs
+#   scripts/flash-test.sh --yes --skip-misc   # 不切 B 槽，保持 A active
+set -uo pipefail
 source "$(dirname "$0")/00-env.sh"
 
-if [ "${1:-}" != "--yes" ]; then
-  cat <<'TXT'
-用法: scripts/flash-test.sh --yes
+ASSUME_YES=0
+STOCK_B=0
+DO_ERASE=1
+USE_AVB=1
+DO_ROOTFS=1
+DO_MISC=1
+DO_REBOOT=1
+WIPE_LINUX=0
 
-会影响的分区:
-  linux          <- out/Test/rootfs-...img
-  boot_b         <- out/Test/boot_b-Test.img
-  vendor_boot_b  <- out/Test/vendor_boot_b-Test.img
-  dtbo_b         <- 原厂 dtbo_b（不使用 Linux 版 dtbo）
-  vbmeta_b       <- 上一轮已验证的 disabled vbmeta
-  misc           <- misc-slot-b.img (必须最后刷)
+while [ $# -gt 0 ]; do
+  case "$1" in
+    --yes) ASSUME_YES=1 ;;
+    --stock-b) STOCK_B=1 ;;
+    --no-erase) DO_ERASE=0 ;;
+    --no-avb) USE_AVB=0 ;;
+    --skip-rootfs) DO_ROOTFS=0 ;;
+    --skip-misc) DO_MISC=0 ;;
+    --skip-reboot) DO_REBOOT=0 ;;
+    --wipe-linux) WIPE_LINUX=1 ;;
+    -h|--help) sed -n '2,14p' "$0"; exit 0 ;;
+    *) echo "unknown arg: $1" >&2; exit 2 ;;
+  esac
+  shift
+done
 
-不会触碰:
-  boot_a / vendor_boot_a / dtbo_a / vbmeta_a / super / userdata
-TXT
+if [ "$ASSUME_YES" -ne 1 ]; then
+  sed -n '2,14p' "$0"
+  echo
+  echo "未指定 --yes，已拒绝执行。"
   exit 2
 fi
 
 FLASH_DIR="$HOME/下载/pearl-刷机文件"
 REF_BOOT="$FLASH_DIR/2-Linux启动-slotB"
-REF_RESCUE="$FLASH_DIR/1-Android恢复-slotA"
-for f in "$OUT/$ROOTFS_IMAGE_NAME" "$OUT/boot_b-Test.img" "$OUT/vendor_boot_b-Test.img" \
-         "$REF_BOOT/misc-slot-b.img" "$REF_BOOT/vbmeta_b-disabled.img" "$REF_BOOT/dtbo_b-stock.img"; do
-  [ -f "$f" ] || die "missing $f"
-done
-fastboot devices | grep -q . || die "no fastboot device"
+REF_RECOVERY="$FLASH_DIR/3-原厂分区备份"
+LOG="$LOGS/flash-test-$(date -u +%Y%m%d-%H%M%S).log"
+mkdir -p "$LOGS"
+exec > >(tee -a "$LOG") 2>&1
 
-echo "==> flashing rootfs (large, takes minutes)"
-fastboot flash linux "$OUT/$ROOTFS_IMAGE_NAME"
-echo "==> flashing boot_b / vendor_boot_b / dtbo_b / vbmeta_b"
-fastboot flash boot_b "$OUT/boot_b-Test.img"
-fastboot flash vendor_boot_b "$OUT/vendor_boot_b-Test.img"
-fastboot flash dtbo_b "$REF_BOOT/dtbo_b-stock.img"
-fastboot flash vbmeta_b "$REF_BOOT/vbmeta_b-disabled.img"
-echo "==> misc: force slot B active+successful (must be last)"
-fastboot flash misc "$REF_BOOT/misc-slot-b.img"
-echo "==> done. reboot: fastboot reboot"
+echo "== pearl B slot flash =="
+echo "mode=$([ "$STOCK_B" -eq 1 ] && echo stock-b || echo linux) erase=$DO_ERASE avb=$USE_AVB rootfs=$DO_ROOTFS misc=$DO_MISC"
+echo "log=$LOG"
+
+fastboot devices | grep -q . || { echo "ERROR: no fastboot device"; exit 1; }
+
+# 生成全尺寸 / VBmeta 镜像的工具
+part_size_bytes() {
+  local p="$1" out hex
+  out="$(fastboot getvar "partition-size:$p" 2>&1 | tr -d '\r')"
+  hex="$(printf '%s\n' "$out" | grep -oE '0x[0-9a-fA-F]+' | tail -1)"
+  [ -n "$hex" ] && printf '%d' "$hex" || echo 0
+}
+make_fullsize() { # src part dst
+  local src="$1" part="$2" dst="$3" size srcsize
+  size="$(part_size_bytes "$part")"
+  srcsize="$(stat -c %s "$src")"
+  if [ "$size" -le 0 ]; then
+    echo "WARN: cannot read partition-size:$part, use source as-is"
+    cp -f "$src" "$dst"
+    return 0
+  fi
+  if [ "$srcsize" -gt "$size" ]; then
+    echo "ERROR: $src ($srcsize) > $part ($size)" >&2
+    return 1
+  fi
+  cp -f "$src" "$dst"
+  truncate -s "$size" "$dst"
+}
+
+erase_part() {
+  local p="$1"
+  echo "==> erase $p"
+  fastboot erase "$p" || echo "WARN: erase $p failed (will rely on full-size image)"
+}
+
+flash_part() {
+  local p="$1" img="$2"
+  echo "==> flash $p <- $img"
+  fastboot flash "$p" "$img" || { echo "ERROR: flash $p failed" >&2; exit 1; }
+}
+
+# 准备镜像
+if [ "$STOCK_B" -eq 1 ]; then
+  BOOT_IMG="$REF_RECOVERY/boot_b.img"
+  VENDOR_BOOT_IMG="$REF_RECOVERY/vendor_boot_b.img"
+  DTBO_IMG="$REF_RECOVERY/dtbo_b.img"
+  VBMETA_B_IMG="$REF_RECOVERY/vbmeta_b.img"
+  VBMETA_SYS_IMG=""
+  VBMETA_VENDOR_IMG=""
+  ROOTFS_IMG=""
+else
+  if [ "$USE_AVB" -eq 1 ]; then
+    BOOT_IMG="$OUT/avb/boot_b-Test-avb.img"
+    VENDOR_BOOT_IMG="$OUT/avb/vendor_boot_b-Test-avb.img"
+  else
+    BOOT_IMG="$OUT/boot_b-Test.img"
+    VENDOR_BOOT_IMG="$OUT/vendor_boot_b-Test.img"
+  fi
+  DTBO_IMG="$REF_BOOT/dtbo_b-stock.img"
+  VBMETA_B_IMG="$REF_BOOT/vbmeta_b-disabled-8m.img"
+  VBMETA_SYS_IMG="$REF_BOOT/vbmeta_system_b-disabled.img"
+  VBMETA_VENDOR_IMG="$REF_BOOT/vbmeta_vendor_b-disabled.img"
+  ROOTFS_IMG="$OUT/$ROOTFS_IMAGE_NAME"
+fi
+[ -f "$BOOT_IMG" ] || { echo "missing $BOOT_IMG"; exit 1; }
+[ -f "$VENDOR_BOOT_IMG" ] || { echo "missing $VENDOR_BOOT_IMG"; exit 1; }
+[ -f "$DTBO_IMG" ] || { echo "missing $DTBO_IMG"; exit 1; }
+[ -f "$VBMETA_B_IMG" ] || { echo "missing $VBMETA_B_IMG"; exit 1; }
+[ "$DO_ROOTFS" -eq 1 ] && [ -f "$ROOTFS_IMG" ] || [ "$DO_ROOTFS" -eq 0 ] || { echo "missing $ROOTFS_IMG"; exit 1; }
+
+# 清掉 B 槽上一轮遗留数据
+if [ "$DO_ERASE" -eq 1 ]; then
+  for p in boot_b vendor_boot_b dtbo_b vbmeta_b vbmeta_system_b vbmeta_vendor_b misc; do
+    erase_part "$p"
+  done
+fi
+
+# 写入
+flash_part boot_b "$BOOT_IMG"
+flash_part vendor_boot_b "$VENDOR_BOOT_IMG"
+flash_part dtbo_b "$DTBO_IMG"
+flash_part vbmeta_b "$VBMETA_B_IMG"
+if [ -n "$VBMETA_SYS_IMG" ] && [ -f "$VBMETA_SYS_IMG" ]; then
+  # 4K disabled vbmeta 需要补到分区尺寸，避免分区里残留原厂数据
+  make_fullsize "$VBMETA_SYS_IMG" vbmeta_system_b "$BUILD/vbmeta_system_b-disabled-full.img"
+  flash_part vbmeta_system_b "$BUILD/vbmeta_system_b-disabled-full.img"
+fi
+if [ -n "$VBMETA_VENDOR_IMG" ] && [ -f "$VBMETA_VENDOR_IMG" ]; then
+  make_fullsize "$VBMETA_VENDOR_IMG" vbmeta_vendor_b "$BUILD/vbmeta_vendor_b-disabled-full.img"
+  flash_part vbmeta_vendor_b "$BUILD/vbmeta_vendor_b-disabled-full.img"
+fi
+
+if [ "$DO_ROOTFS" -eq 1 ]; then
+  if [ "$WIPE_LINUX" -eq 1 ]; then
+    echo "==> erase linux (可能较慢)"
+    fastboot erase linux || echo "WARN: erase linux failed, 继续 flash"
+  fi
+  flash_part linux "$ROOTFS_IMG"
+fi
+
+if [ "$DO_MISC" -eq 1 ]; then
+  flash_part misc "$REF_BOOT/misc-slot-b.img"
+fi
+
+echo "==> slot info after flash"
+fastboot getvar current-slot 2>&1 | tail -3 || true
+fastboot getvar slot-unbootable:a 2>&1 | tail -2 || true
+fastboot getvar slot-unbootable:b 2>&1 | tail -2 || true
+fastboot getvar slot-retry-count:b 2>&1 | tail -2 || true
+
+if [ "$DO_REBOOT" -eq 1 ]; then
+  echo "==> reboot"
+  fastboot reboot
+else
+  echo "==> skip reboot; device remains in fastboot"
+fi
 
 cat <<'TIP'
-回 Android:
-  fastboot flash misc "$HOME/下载/pearl-刷机文件/1-Android恢复-slotA/misc-slot-a.img"
-  fastboot reboot
+如果重启后直接回 Preloader/BROM：
+  1) 不要反复刷；先重新进 fastboot
+  2) 执行 scripts/capture-fastboot-debug.sh 抓 getvar / dump_pllk_log / 分区
+  3) 如果 fastboot 也进不去，按 preloader 模式 + scripts 里的 mtkclient 读 expdb 日志
+回到 Android A 槽:
+  scripts/restore-android-a.sh --yes
 TIP
