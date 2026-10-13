@@ -5,6 +5,7 @@ import os, struct, subprocess, sys, time
 EV_KEY = 1
 KEY_POWER = 116
 EVENT = struct.Struct('@llHHi')
+_last_toggle = 0.0
 DPMS = '/sys/class/drm/card0-DSI-1/dpms'
 WLOpm = '/usr/bin/wlopm'
 OUTPUT = 'DSI-1'
@@ -36,6 +37,11 @@ def wayland_env():
     return env
 
 def toggle():
+    global _last_toggle
+    now = time.monotonic()
+    if now - _last_toggle < 1.0:
+        return
+    _last_toggle = now
     try:
         state = open(DPMS).read().strip()
     except OSError:
