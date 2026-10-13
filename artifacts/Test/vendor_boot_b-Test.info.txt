@@ -1,0 +1,28 @@
+boot magic: VNDRBOOT
+vendor boot image header version: 4
+page size: 0x00001000
+kernel load address: 0x40000000
+ramdisk load address: 0x66f00000
+vendor ramdisk total size: 12977100
+vendor command line args: bootopt=64S3,32N2,64N2 androidboot.selinux=permissive
+kernel tags load address: 0x47c80000
+product name: 
+vendor boot image header size: 2128
+dtb size: 327327
+dtb address: 0x0000000047c80000
+vendor ramdisk table size: 108
+vendor ramdisk table: [
+    vendor_ramdisk00: {
+        size: 12977100
+        offset: 0
+        type: 0x1
+        name: 
+        board_id: [
+            0x00000000, 0x00000000, 0x00000000, 0x00000000,
+            0x00000000, 0x00000000, 0x00000000, 0x00000000,
+            0x00000000, 0x00000000, 0x00000000, 0x00000000,
+            0x00000000, 0x00000000, 0x00000000, 0x00000000,
+        ]
+    }
+]
+vendor bootconfig size: 0

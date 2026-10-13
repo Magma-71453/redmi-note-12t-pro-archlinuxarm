@@ -1,0 +1,20 @@
+# pearl-linux Test manifest
+version_title=Test
+build_date_utc=2026-10-13T11:08:10Z
+device=pearl
+model=23054RA19C
+soc=mt6895
+arch=arm64
+kernel_release=7.2.9+
+kernel_asset=artifacts/kernel-7.2.9+
+rootfs_image=pearl-linux-rootfs-Test.img
+rootfs_image_size=10G
+boot_image=boot_b-Test.img
+vendor_boot_image=vendor_boot_b-Test.img
+linux_partition=/dev/sdc88
+boot_b_partition=/dev/sdc72
+userdata_partition=/dev/sdc86 (READ-ONLY for Linux)
+desktop=labwc
+terminal=kitty
+editor=neovim
+containers=docker
