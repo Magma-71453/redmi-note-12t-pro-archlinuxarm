@@ -72,18 +72,20 @@ UNIT
 systemctl enable pearl-firstboot.service
 
 # ----- 用户与 SSH -----
-if ! id -u mobian >/dev/null 2>&1; then
-  # 用户命名空间里 chown 到非映射 uid 会失败，所以用 -M，家目录交给
-  # 首次启动的 systemd-tmpfiles Z 规则修正属主。
-  useradd -M -u 1000 -g 1000 -G wheel,docker,video,audio,input -s /usr/bin/bash mobian || \
-  useradd -M -u 1000 -s /usr/bin/bash mobian
-fi
-mkdir -p /home/mobian
-cp -a /etc/skel/. /home/mobian/ 2>/dev/null || true
-printf 'mobian:pearl\nroot:CHANGE_ME_AT_BUILD\n' | chpasswd
+# ALARM tarball 自带 uid=1000 的 alarm 用户；Test 直接使用它，避免 useradd 在
+# 无映射 uid 的 user namespace 中失败。
+PRIMARY_USER=alarm
+id -u "$PRIMARY_USER" >/dev/null 2>&1 || useradd -M -u 1000 -U -s /usr/bin/bash "$PRIMARY_USER"
+usermod -aG wheel,docker,video,audio,input "$PRIMARY_USER" 2>/dev/null || true
+mkdir -p "/home/$PRIMARY_USER"
+rm -f "/home/$PRIMARY_USER/$PRIMARY_USER"   # 清理早期脚本误建的 self symlink
+cp -a /etc/skel/. "/home/$PRIMARY_USER/" 2>/dev/null || true
+# initramfs-final 会尝试修正 /home/alarm 属主；保留一个兼容符号链接
+ln -sfn "/home/$PRIMARY_USER" /home/mobian
+printf '%s:pearl\nroot:CHANGE_ME_AT_BUILD\n' "$PRIMARY_USER" | chpasswd
 cat > /etc/tmpfiles.d/pearl-home.conf <<'TMPFILES'
-Z /home/mobian 0755 mobian mobian -
-z /var/lib/docker 0710 root docker -
+Z /home/alarm 0755 1000 1000 -
+z /var/lib/docker 0710 0 20 -
 TMPFILES
 mkdir -p /etc/ssh/sshd_config.d
 cat > /etc/ssh/sshd_config.d/10-pearl-test.conf <<'SSH'
@@ -131,6 +133,18 @@ ZRAM
 for unit in sshd NetworkManager docker containerd systemd-resolved systemd-timesyncd earlyoom; do
   systemctl enable "$unit" 2>/dev/null || echo "WARN: enable $unit failed"
 done
+# 不使用 systemd-networkd；网络由 NetworkManager + systemd-resolved 管理。
+systemctl disable systemd-networkd.service systemd-networkd.socket 2>/dev/null || true
+rm -f /etc/systemd/system/multi-user.target.wants/systemd-networkd.service
+rm -f /etc/systemd/system/sockets.target.wants/systemd-networkd.socket
+# systemctl 在 chroot 中有时候不能写 alias，手动补 systemd-resolved。
+if [ ! -e /etc/systemd/system/multi-user.target.wants/systemd-resolved.service ]; then
+  mkdir -p /etc/systemd/system/multi-user.target.wants
+  ln -sf /usr/lib/systemd/system/systemd-resolved.service /etc/systemd/system/multi-user.target.wants/systemd-resolved.service
+fi
+if [ ! -e /etc/systemd/system/dbus-org.freedesktop.resolve1.service ]; then
+  ln -sf /usr/lib/systemd/system/systemd-resolved.service /etc/systemd/system/dbus-org.freedesktop.resolve1.service
+fi
 systemctl set-default multi-user.target 2>/dev/null || true
 
 # ----- labwc / kitty / nvim 桌面与终端 -----
@@ -175,10 +189,10 @@ if [ -z "${WAYLAND_DISPLAY:-}" ] && [ "$(tty 2>/dev/null)" = "/dev/tty1" ]; then
   fi
 fi
 PROFILE
-cp -a /etc/skel/. /home/mobian/ 2>/dev/null || true
+cp -a /etc/skel/. /home/alarm/ 2>/dev/null || true
 # 用 tmpfiles 在真实内核启动后修正家目录属主
 cat >> /etc/tmpfiles.d/pearl-home.conf <<'TMPFILES'
-Z /home/mobian 0755 mobian mobian -
+Z /home/alarm 0755 1000 1000 -
 TMPFILES
 
 # ----- tty1 autologin -----
@@ -186,7 +200,7 @@ mkdir -p /etc/systemd/system/getty@tty1.service.d
 cat > /etc/systemd/system/getty@tty1.service.d/autologin.conf <<'GETTY'
 [Service]
 ExecStart=
-ExecStart=-/sbin/agetty --autologin mobian --noclear %I $TERM
+ExecStart=-/sbin/agetty --autologin alarm --noclear %I $TERM
 GETTY
 
 # 清理 generic kernel 残留

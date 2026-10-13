@@ -25,14 +25,14 @@ fi
 FLASH_DIR="$HOME/下载/pearl-刷机文件"
 REF_BOOT="$FLASH_DIR/2-Linux启动-slotB"
 REF_RESCUE="$FLASH_DIR/1-Android恢复-slotA"
-for f in "$OUT/rootfs-$VERSION_TITLE.img" "$OUT/boot_b-Test.img" "$OUT/vendor_boot_b-Test.img" \
+for f in "$OUT/$ROOTFS_IMAGE_NAME" "$OUT/boot_b-Test.img" "$OUT/vendor_boot_b-Test.img" \
          "$REF_BOOT/misc-slot-b.img" "$REF_BOOT/vbmeta_b-disabled.img" "$REF_BOOT/dtbo_b-stock.img"; do
   [ -f "$f" ] || die "missing $f"
 done
 fastboot devices | grep -q . || die "no fastboot device"
 
 echo "==> flashing rootfs (large, takes minutes)"
-fastboot flash linux "$OUT/rootfs-$VERSION_TITLE.img"
+fastboot flash linux "$OUT/$ROOTFS_IMAGE_NAME"
 echo "==> flashing boot_b / vendor_boot_b / dtbo_b / vbmeta_b"
 fastboot flash boot_b "$OUT/boot_b-Test.img"
 fastboot flash vendor_boot_b "$OUT/vendor_boot_b-Test.img"
