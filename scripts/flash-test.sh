@@ -63,6 +63,12 @@ fastboot devices | grep -q . || { echo "ERROR: no fastboot device"; exit 1; }
 # 生成全尺寸 / VBmeta 镜像的工具
 part_size_bytes() {
   local p="$1" out hex
+  case "$p" in
+    boot_b|vendor_boot_b)       echo $((64*1024*1024)); return 0 ;;
+    dtbo_b)                     echo $((32*1024*1024)); return 0 ;;
+    vbmeta_b|vbmeta_system_b|vbmeta_vendor_b) echo $((8*1024*1024)); return 0 ;;
+    misc)                       echo $((4*1024*1024)); return 0 ;;
+  esac
   out="$(fastboot getvar "partition-size:$p" 2>&1 | tr -d '\r')"
   hex="$(printf '%s\n' "$out" | grep -oE '0x[0-9a-fA-F]+' | tail -1)"
   [ -n "$hex" ] && printf '%d' "$hex" || echo 0
@@ -132,7 +138,13 @@ fi
 
 # 清掉 B 槽上一轮遗留数据
 if [ "$DO_ERASE" -eq 1 ]; then
-  for p in boot_b vendor_boot_b dtbo_b vbmeta_b vbmeta_system_b vbmeta_vendor_b misc; do
+  ERASE_PARTS=(boot_b vendor_boot_b dtbo_b vbmeta_b misc)
+  if [ "$STOCK_B" -eq 0 ]; then
+    # Linux 模式会写入 disabled 的 system/vendor vbmeta，可以清空；
+    # stock-b 模式没有原厂 system/vendor vbmeta 备份，不能擦，否则 AVB 链断裂。
+    ERASE_PARTS+=(vbmeta_system_b vbmeta_vendor_b)
+  fi
+  for p in "${ERASE_PARTS[@]}"; do
     erase_part "$p"
   done
 fi
