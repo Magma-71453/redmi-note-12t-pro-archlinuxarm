@@ -5,6 +5,7 @@
 #   scripts/flash-test.sh --yes               # 刷 Test Linux（默认）
 #   scripts/flash-test.sh --yes --stock-b     # 只刷原厂 B 启动链，用于验证 B 槽是否健康
 #   scripts/flash-test.sh --yes --stock-vendor-boot  # 用原厂 vendor_boot_b(DTBO table)+我们的 kernel
+#   scripts/flash-test.sh --yes --lineage-dtbo       # 用 A 槽正在使用的 LineageOS dtbo.img
 #   scripts/flash-test.sh --yes --no-erase    # 不执行 fastboot erase（不推荐）
 #   scripts/flash-test.sh --yes --no-avb      # 使用小镜像（旧行为，不推荐）
 #   scripts/flash-test.sh --yes --skip-rootfs # 只刷 boot 链，不写 linux rootfs
@@ -15,6 +16,7 @@ source "$(dirname "$0")/00-env.sh"
 ASSUME_YES=0
 STOCK_B=0
 STOCK_VENDOR_BOOT=0
+LINEAGE_DTBO=0
 DO_ERASE=1
 USE_AVB=1
 DO_ROOTFS=1
@@ -27,6 +29,7 @@ while [ $# -gt 0 ]; do
     --yes) ASSUME_YES=1 ;;
     --stock-b) STOCK_B=1 ;;
     --stock-vendor-boot) STOCK_VENDOR_BOOT=1 ;;
+    --lineage-dtbo) LINEAGE_DTBO=1 ;;
     --no-erase) DO_ERASE=0 ;;
     --no-avb) USE_AVB=0 ;;
     --skip-rootfs) DO_ROOTFS=0 ;;
@@ -147,7 +150,11 @@ else
   else
     VENDOR_BOOT_IMG="$OUT/vendor_boot_b-Test.img"
   fi
-  DTBO_IMG="$REF_BOOT/dtbo_b-stock.img"
+  if [ "$LINEAGE_DTBO" -eq 1 ]; then
+    DTBO_IMG="$HOME/下载/tmp/one/pearl-fastboot/images/dtbo.img"
+  else
+    DTBO_IMG="$REF_BOOT/dtbo_b-stock.img"
+  fi
   VBMETA_B_IMG="$REF_BOOT/vbmeta_b-disabled-8m.img"
   VBMETA_SYS_IMG="$REF_BOOT/vbmeta_system_b-disabled.img"
   VBMETA_VENDOR_IMG="$REF_BOOT/vbmeta_vendor_b-disabled.img"
