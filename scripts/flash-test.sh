@@ -36,6 +36,10 @@ while [ $# -gt 0 ]; do
   shift
 done
 
+if [ "$STOCK_B" -eq 1 ]; then
+  DO_ROOTFS=0
+fi
+
 if [ "$ASSUME_YES" -ne 1 ]; then
   sed -n '2,14p' "$0"
   echo
@@ -93,6 +97,9 @@ flash_part() {
 }
 
 # 准备镜像
+if [ "$STOCK_B" -eq 0 ] && [ "$USE_AVB" -eq 1 ] && [ ! -f "$OUT/avb/boot_b-Test-avb.img" ]; then
+  "$REPO/scripts/55-bootimg-avb.sh"
+fi
 if [ "$STOCK_B" -eq 1 ]; then
   BOOT_IMG="$REF_RECOVERY/boot_b.img"
   VENDOR_BOOT_IMG="$REF_RECOVERY/vendor_boot_b.img"
@@ -119,7 +126,9 @@ fi
 [ -f "$VENDOR_BOOT_IMG" ] || { echo "missing $VENDOR_BOOT_IMG"; exit 1; }
 [ -f "$DTBO_IMG" ] || { echo "missing $DTBO_IMG"; exit 1; }
 [ -f "$VBMETA_B_IMG" ] || { echo "missing $VBMETA_B_IMG"; exit 1; }
-[ "$DO_ROOTFS" -eq 1 ] && [ -f "$ROOTFS_IMG" ] || [ "$DO_ROOTFS" -eq 0 ] || { echo "missing $ROOTFS_IMG"; exit 1; }
+if [ "$DO_ROOTFS" -eq 1 ] && [ ! -f "$ROOTFS_IMG" ]; then
+  echo "missing $ROOTFS_IMG"; exit 1
+fi
 
 # 清掉 B 槽上一轮遗留数据
 if [ "$DO_ERASE" -eq 1 ]; then
