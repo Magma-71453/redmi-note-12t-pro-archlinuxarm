@@ -22,7 +22,7 @@ log "write manifest"
   echo "soc=$TARGET_SOC"
   echo "arch=$TARGET_ARCH"
   echo "kernel_release=${KERNEL_ACTUAL_RELEASE:-${KERNEL_VERSION}${KERNEL_RELEASE_SUFFIX}}"
-  echo "kernel_asset=$KERNEL_ASSET_DIR"
+  echo "kernel_asset=${KERNEL_ASSET_DIR#"$REPO"/}"
   echo "rootfs_image=$ROOTFS_IMAGE_NAME"
   echo "rootfs_image_size=$ROOTFS_IMAGE_SIZE"
   echo "boot_image=boot_b-Test.img"
@@ -38,6 +38,6 @@ log "write manifest"
 
 cat "$OUT/MANIFEST.txt"
 cat "$OUT"/*SHA256SUMS > "$OUT/SHA256SUMS-ALL"
-sha256sum "$OUT/MANIFEST.txt" >> "$OUT/SHA256SUMS-ALL"
+( cd "$REPO" && sha256sum "${OUT#"$REPO"/}/MANIFEST.txt" >> "${OUT#"$REPO"/}/SHA256SUMS-ALL" )
 
 log "done. outputs in $OUT"

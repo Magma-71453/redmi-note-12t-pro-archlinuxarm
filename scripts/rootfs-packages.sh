@@ -13,7 +13,7 @@ PKGS=(
   python python-pip
   zram-generator earlyoom polkit seatd
 )
-# ALARM tarball 自带 generic linux-aarch64 7.1.6，本项目使用 7.2.9+ pearl 定制内核，
+# ALARM tarball 自带 generic linux-aarch64，本项目使用 7.2.10++ pearl 定制内核，
 # 移除 generic 内核，避免 /boot 和 /usr/lib/modules 混淆。
 pacman -Rdd --noconfirm linux-aarch64 || true
 pacman -Syu --noconfirm

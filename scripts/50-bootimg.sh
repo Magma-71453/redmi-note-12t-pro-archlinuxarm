@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# 从仓库内固化的 7.2.9+ 内核资产重新打包 boot_b / vendor_boot_b。
+# 从仓库内固化的 kernel asset（当前为 7.2.10++）重新打包 boot_b / vendor_boot_b。
 # 结果与上一轮已验证的 boot-pearl-linux-final-v4.img / vendor_boot-pearl-linux-final.img
 # 字节级一致（脚本会校验）。
 set -euo pipefail
@@ -41,5 +41,5 @@ if [ -f "$ref_vendor" ]; then
   cmp -s "$OUT/vendor_boot_b-Test.img" "$ref_vendor" && log "vendor_boot_b-Test == known-good final" || die "vendor_boot_b-Test differs from known-good reference"
 fi
 
-sha256sum "$OUT/boot_b-Test.img" "$OUT/vendor_boot_b-Test.img" > "$OUT/boot-SHA256SUMS"
+( cd "$REPO" && sha256sum "${OUT#"$REPO"/}/boot_b-Test.img" "${OUT#"$REPO"/}/vendor_boot_b-Test.img" > "${OUT#"$REPO"/}/boot-SHA256SUMS" )
 cat "$OUT/boot-SHA256SUMS"

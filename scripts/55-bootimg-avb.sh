@@ -38,6 +38,6 @@ for f in "$OUTDIR/boot_b-Test-avb.img" "$OUTDIR/vendor_boot_b-Test-avb.img"; do
   avbtool info_image --image "$f" | sed -n '1,16p'
   unpack_bootimg --boot_img "$f" --format info | sed -n '1,8p'
 done
-sha256sum "$OUTDIR"/*.img > "$OUTDIR/SHA256SUMS"
+( cd "$REPO" && sha256sum "${OUTDIR#"$REPO"/}"/*.img > "${OUTDIR#"$REPO"/}/SHA256SUMS" )
 cat "$OUTDIR/SHA256SUMS"
 log "done: $OUTDIR"

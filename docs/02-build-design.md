@@ -2,7 +2,7 @@
 
 实际脚本顺序：
 
-1. `scripts/20-kernel-assets.sh` — 校验 `artifacts/kernel-7.2.9+/`：
+1. `scripts/20-kernel-assets.sh` — 校验 `artifacts/kernel-7.2.10++/`：
    `Image.gz`、`initramfs-final.cpio.lz4`、`pearl.dtb`、内嵌 `.config`。
 2. `scripts/30-rootfs.sh` — 解压 ALARM aarch64 tarball，在
    `unshare -r -m` + `qemu-aarch64-static`(binfmt_misc) 中执行 pacman：
@@ -22,7 +22,7 @@
 
 ## 已确认的构建事实
 
-- 内核 release：`7.2.9+`（不是 mainline 7.2.10；后者无 MT6895 DTS）
+- 内核 release：`7.2.10++`（源码 pearl 分支；mainline 无 MT6895 DTS）
 - rootfs：ext4，label `archpearl`，10 GiB 镜像约 4 GiB 数据
 - initramfs-final 支持扫描 `/etc/mt6895-rootfs` 并挂载 ext4/f2fs
 - Docker 内核前提：`OVERLAY_FS=y`、`VETH=y`、`BRIDGE=y`、

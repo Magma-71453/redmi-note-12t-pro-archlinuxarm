@@ -57,7 +57,15 @@ mkdir -p "$ROOTFS_DIR/usr/lib/modules"
 cp -a "$BUILD/kernel-modules/tree/modules/7.2.9+" "$ROOTFS_DIR/usr/lib/modules/"
 "$REPO/scripts/enter-rootfs.sh" "$ROOTFS_DIR" depmod -a 7.2.9+
 
-# 6. 系统配置
+# 6. 系统配置（构建时生成随机初始密码；写入 out/Test/rootfs-password.txt）
+if [ -z "${ROOTFS_PASSWORD:-}" ]; then
+  ROOTFS_PASSWORD="$(head -c 24 /dev/urandom | base64 | tr -dc 'A-Za-z0-9' | head -c 16)"
+fi
+mkdir -p "$OUT"
+(umask 077; printf '%s\n' "$ROOTFS_PASSWORD" > "$OUT/rootfs-password.txt")
+install -m600 /dev/null "$ROOTFS_DIR/tmp/pearl-root-password"
+printf '%s\n' "$ROOTFS_PASSWORD" > "$ROOTFS_DIR/tmp/pearl-root-password"
+chmod 600 "$ROOTFS_DIR/tmp/pearl-root-password"
 install -m755 "$REPO/scripts/rootfs-configure.sh" "$ROOTFS_DIR/tmp/rootfs-configure.sh"
 "$REPO/scripts/enter-rootfs.sh" "$ROOTFS_DIR" /bin/bash -l /tmp/rootfs-configure.sh
 
