@@ -83,11 +83,13 @@ def main():
                 continue
             for off in range(0, len(data) - EVENT.size + 1, EVENT.size):
                 _sec, _usec, typ, code, val = EVENT.unpack(data[off:off + EVENT.size])
-                if typ == EV_KEY and code == KEY_POWER and val == 1:
-                    try:
-                        toggle()
-                    except Exception as exc:
-                        print('pearl-powerkey: error %r' % (exc,), flush=True)
+                if typ == EV_KEY:
+                    print('pearl-powerkey: key code=%d val=%d' % (code, val), flush=True)
+                    if code == KEY_POWER and val == 1:
+                        try:
+                            toggle()
+                        except Exception as exc:
+                            print('pearl-powerkey: error %r' % (exc,), flush=True)
 
 if __name__ == '__main__':
     if '--toggle' in sys.argv:
