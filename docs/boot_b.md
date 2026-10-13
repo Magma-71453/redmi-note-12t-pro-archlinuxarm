@@ -1,32 +1,34 @@
-# boot_b 引导设计（待实机验证）
+# boot_b 引导设计（Test 已打包，待实机刷写验证）
 
-## 目标
+## 目标与实现
 
-- `boot_a`：Android，保持原样，继续使用 `/dev/sdc86` userdata。
-- `boot_b`：Linux Test，7.2.x 内核 + initramfs，挂载 `/dev/sdc88`（PARTLABEL=linux）为根。
+- `boot_a`：Android，保持原样，继续挂载 `/dev/sdc86` userdata。
+- `boot_b`：Linux Test，内核 7.2.9+ + initramfs-final，挂载 `/dev/sdc88` 的
+  `/etc/mt6895-rootfs` 分区为根（当前 rootfs label=`archpearl`，ext4）。
+- `vendor_boot_b`：提供 pearl DTB，vendor cmdline 为
+  `bootopt=64S3,32N2,64N2 androidboot.selinux=permissive`。
 
-## initramfs /init 逻辑
+## 产物
 
-1. 挂载 `/proc`、`/sys`、`/dev`。
-2. 扫描 `/sys/class/block/*/uevent` 找 `PARTNAME=linux`；解析出块设备名。
-3. `mount -t ext4 -o rw,noatime <dev> /newroot`；失败时回退 LABEL=archpearl、/dev/sdc88。
-4. 确认 `/newroot/usr/lib/systemd/systemd` 存在。
-5. `switch_root /newroot /usr/lib/systemd/systemd`。
+- `artifacts/Test/boot_b-Test.img`
+  sha256 `e34ae45d3f0cc19dfc72e24e9dfe4927f5f1317fe269f675fb18ddb135734fde`
+- `artifacts/Test/vendor_boot_b-Test.img`
+  sha256 `0711787da078283c41b6c5277d1c211ee59e142e28ddf7ea8e1eca196b5cb26e`
 
-## 刷写（未执行，必须用户确认）
+两者与上一轮已验证的 final-v4 镜像逐字节一致。
+
+## 刷写（必须用户确认后执行）
 
 ```bash
-fastboot getvar current-slot
-fastboot flash boot_b out/Test/boot_b.img
-fastboot --set-active=b
-fastboot reboot
+scripts/flash-test.sh --yes
 ```
+
+脚本刷 `linux`、`boot_b`、`vendor_boot_b`、`dtbo_b`、`vbmeta_b`，
+最后刷 `misc` 把 slot B 设为 active+successful。
+不会触碰 `boot_a`、`vendor_boot_a`、`dtbo_a`、`vbmeta_a`、`super`、`userdata`。
 
 ## 回退 Android
 
 ```bash
-fastboot --set-active=a
-fastboot reboot
+scripts/restore-android-a.sh --yes
 ```
-
-注意：不执行 `fastboot erase`、不刷 `super/userdata/vbmeta`。

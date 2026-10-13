@@ -65,3 +65,13 @@ logs/       构建日志（gitignore，关键证据归档到 docs/evidence/）
 - 构建全部在主机侧完成，不自动写真机分区。
 - 产物生成 SHA256 校验和并写入 git。
 - 每个阶段完成后用 `build(pearl): ...` 提交。
+
+
+## Test 构建结果（2026-10-13）
+
+- 版本标题：`Test`，git tag：`Test`
+- rootfs：`out/Test/pearl-linux-rootfs-Test.img`（10 GiB ext4）及 `.zst`
+- boot：`artifacts/Test/boot_b-Test.img`、`artifacts/Test/vendor_boot_b-Test.img`
+- 内核：`artifacts/kernel-7.2.9+/`（7.2.9+，pearl 专用，见 `docs/kernel-provenance.md`）
+- 详细说明：`docs/TEST-BUILD.md`
+- 刷写脚本默认拒绝执行；确认风险后使用 `scripts/flash-test.sh --yes`
