@@ -1,17 +1,10 @@
 #!/bin/sh
-# Re-init the pearl DSI panel after resume; otherwise the vendor display
-# controller can stay in an underrun/white-screen state.
+# Schedule a compositor restart after resume; decoupled via systemd-run so
+# the sleep hook returns immediately.
 case "$1" in
   post)
-    for i in $(seq 1 50); do
-      [ -S /run/user/1000/wayland-0 ] && break
-      sleep 0.1
-    done
-    export XDG_RUNTIME_DIR=/run/user/1000
-    export WAYLAND_DISPLAY=wayland-0
-    /usr/bin/wlopm --off DSI-1 2>/dev/null
-    sleep 0.3
-    /usr/bin/wlopm --on DSI-1 2>/dev/null
+    /usr/bin/systemd-run --on-active=1 --unit=pearl-session-restart \
+      /usr/local/sbin/pearl-restart-session.sh >/dev/null 2>&1
     ;;
 esac
 exit 0
