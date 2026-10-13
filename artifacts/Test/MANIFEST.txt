@@ -1,6 +1,6 @@
 # pearl-linux Test manifest
 version_title=Test
-build_date_utc=2026-10-13T17:47:09Z
+build_date_utc=2026-10-13T18:38:20Z
 device=pearl
 model=23054RA19C
 soc=mt6895

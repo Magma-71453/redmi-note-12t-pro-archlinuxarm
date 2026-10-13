@@ -59,3 +59,13 @@ CONFIG_F2FS_FS=y
 - 产物：`artifacts/kernel-7.2.10++/Image.gz`（内嵌 DTB，启动时覆盖 LK FDT）
 - 运行时 `uname -r`：`7.2.10++`；rootfs 内模块目录仍为 `7.2.9+`，
   显示/存储/USB 等关键驱动为 built-in，Docker 已可用
+
+### 2026-10-14 开机静默与桌面自启
+
+- `arch/arm64/kernel/setup.c` 不再追加 `ignore_loglevel`，改为追加
+  ` quiet loglevel=3`，避免启动时刷屏；完整日志仍由
+  `pearl-debug-log.service` 写入 expdb。
+- 内核 boot 镜像重新打包为 `artifacts/Test/boot_b-Test.img` / `out/Test/avb/boot_b-Test-avb.img`。
+- 桌面启动改为 systemd 服务 `pearl-labwc.service`（`/etc/systemd/system/`），
+  不再依赖 getty autologin + `.bash_profile`；`getty@tty1.service` 已禁用。
+- 实测启动：kernel ~9.9s + userspace ~6.0s ≈ 15.9s。

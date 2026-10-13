@@ -10,3 +10,6 @@ Build:
 Config is `config` (base = mt6895 pearl 7.2.9+ artifact, merged with
 `arch/arm64/configs/pearl.config`, USB MTU3 forced to gadget-only).
 The kernel embeds `mt6895-xiaomi-pearl.dtb` and overrides the LK FDT at boot.
+
+Quiet boot: `arch/arm64/kernel/setup.c` appends `quiet loglevel=3` instead of
+`ignore_loglevel`; full logs still go to expdb via `pearl-debug-log.service`.

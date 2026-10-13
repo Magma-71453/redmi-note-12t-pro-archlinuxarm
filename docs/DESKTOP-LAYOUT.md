@@ -30,6 +30,9 @@
 
 ## 启动
 
-- tty1 autologin 到 `alarm`，`.bash_profile` 执行 labwc；labwc autostart 依次启动
-  `pearl-panel`、`wvkbd`、`kitty`。
+- `pearl-labwc.service` 由 systemd 直接以 alarm 用户在 tty1 启动 labwc，
+  带 `PAMName=login` 的 seat0 会话；`getty@tty1.service` 已禁用。
+- labwc autostart 依次启动 `pearl-panel`、`wvkbd`、`kitty`。
+- 内核 cmdline 追加 `quiet loglevel=3`（不再追加 `ignore_loglevel`），
+  启动约 16s，无滚屏日志。
 - USB gadget 仍提供 ttyGS0 上的 root bash；Wi-Fi 上 sshd 提供 `alarm`/`root` 登录。

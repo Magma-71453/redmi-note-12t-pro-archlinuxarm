@@ -39,5 +39,5 @@ zstd -T0 -19 -f "$img" -o "$img.zst"
 
 log "images ready:"
 ls -lh "$img" "$img.zst"
-( cd "$REPO" && sha256sum "${img#"$REPO"/}" "${img.zst#"$REPO"/}" > "${OUT#"$REPO"/}/rootfs-SHA256SUMS" )
+( cd "$REPO" && sha256sum "${img#"$REPO"/}" "${img#"$REPO"/}.zst" > "${OUT#"$REPO"/}/rootfs-SHA256SUMS" )
 cat "$OUT/rootfs-SHA256SUMS"
