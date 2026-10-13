@@ -1,0 +1,56 @@
+verification_date=2026-10-13T11:15:13Z
+git_head=8c77ec189e4115d3084127068bc22d94f0f6036e
+git_tag=d111b74d77e7147b1b4725c1d3b176623046709e
+--- boot checksums ---
+out/Test/boot_b-Test.img: 成功
+out/Test/vendor_boot_b-Test.img: 成功
+--- rootfs checksums ---
+out/Test/pearl-linux-rootfs-Test.img: 成功
+out/Test/pearl-linux-rootfs-Test.img.zst: 成功
+--- rootfs ext4 ---
+第 2 遍：检查目录结构
+第 3 遍：检查目录连接性
+第 4 遍：检查引用计数
+第 5 遍：检查组概要信息
+archpearl: 71090/655360 文件（0.7% 不连续），1049991/2621440 块
+Filesystem volume name:   archpearl
+Filesystem state:         clean
+Block count:              2621440
+Free blocks:              1571449
+--- image key files ---
+/etc/mt6895-rootfs                                                          OK
+/etc/os-release                                                             OK
+/etc/pacman.conf                                                            OK
+/etc/pacman.d/gnupg/pubring.gpg                                             OK
+/usr/lib/modules/7.2.9+/modules.dep                                         OK
+/usr/bin/docker                                                             OK
+/usr/bin/labwc                                                              OK
+/usr/bin/kitty                                                              OK
+/usr/bin/nvim                                                               OK
+/home/alarm/.config/labwc/autostart                                         OK
+/home/alarm/.config/kitty/kitty.conf                                        OK
+/home/alarm/.config/nvim/init.lua                                           OK
+/etc/systemd/system/getty@tty1.service.d/autologin.conf                     OK
+/etc/systemd/system/multi-user.target.wants/docker.service                  OK
+/etc/resolv.conf                                                            OK
+--- pacman secure config in image ---
+CheckSpace
+DownloadUser = alpm
+SigLevel = Required DatabaseOptional
+LocalFileSigLevel = Optional
+#RemoteFileSigLevel = Required
+#SigLevel = Optional TrustAll
+--- tmpfiles/modules in image ---
+Z /home/alarm 0755 1000 1000 -
+z /var/lib/docker 0710 root docker -
+Z /home/alarm 0755 1000 1000 -
+overlay
+br_netfilter
+veth
+bridge
+xt_conntrack
+--- flash script safety (no --yes should exit 2) ---
+flash_script_no_yes_rc=2
+用法: scripts/flash-test.sh --yes
+
+会影响的分区:
