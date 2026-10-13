@@ -8,7 +8,14 @@ PRELOADER="${PRELOADER:-$HOME/下载/pearl-MTK验证文件/1-官方ROM提取/pre
 LOADER="${LOADER:-$HOME/下载/pearl-MTK验证文件/1-官方ROM提取/DA_BR.bin}"
 SRC="${SRC:-$HOME/下载/pearl-刷机文件/3-原厂分区备份}"
 for f in "$MTK" "$PRELOADER" "$LOADER"; do [ -f "$f" ] || { echo "missing $f"; exit 1; }; done
-lsusb | grep -q '0e8d:2000' || { echo "device is not in 0e8d:2000 preloader mode"; exit 2; }
+if ! lsusb | grep -q '0e8d:2000'; then
+  if [ "${1:-}" = "--wait" ]; then
+    echo "waiting for preloader mode 0e8d:2000 ..."
+    while ! lsusb | grep -q '0e8d:2000'; do sleep 1; done
+  else
+    echo "device is not in 0e8d:2000 preloader mode"; exit 2
+  fi
+fi
 set -e
 for p in boot_b vendor_boot_b dtbo_b vbmeta_b boot_para; do
   img="$SRC/$p.img"
