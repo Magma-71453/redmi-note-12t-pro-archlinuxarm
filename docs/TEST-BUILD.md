@@ -2,7 +2,7 @@
 
 # pearl-linux Test manifest
 version_title=Test
-build_date_utc=2026-10-13T11:08:10Z
+build_date_utc=2026-10-13T11:14:29Z
 device=pearl
 model=23054RA19C
 soc=mt6895
@@ -29,10 +29,10 @@ containers=docker
 
 | 文件 | 大小 | SHA256 |
 |---|---:|---|
-| `out/Test/pearl-linux-rootfs-Test.img` | 10 GiB (约 4 GiB 实际数据) | `` |
-| `out/Test/pearl-linux-rootfs-Test.img.zst` | ~850 MiB | `` |
-| `out/Test/boot_b-Test.img` | 33,333,248 B | `` |
-| `out/Test/vendor_boot_b-Test.img` | 13,316,096 B | `` |
+| `out/Test/pearl-linux-rootfs-Test.img` | 10 GiB (约 4 GiB 实际数据) | `f9a5e2be3dfbac0e7a4af3ac060b20f37db6c08248a0760be47b3dcd25f972a0` |
+| `out/Test/pearl-linux-rootfs-Test.img.zst` | ~850 MiB | `e3778248aa599f19d5778f4022afe4bf4aa0d77a5bd05934460a72ec7812e1cf` |
+| `out/Test/boot_b-Test.img` | 33,333,248 B | `e34ae45d3f0cc19dfc72e24e9dfe4927f5f1317fe269f675fb18ddb135734fde` |
+| `out/Test/vendor_boot_b-Test.img` | 13,316,096 B | `0711787da078283c41b6c5277d1c211ee59e142e28ddf7ea8e1eca196b5cb26e` |
 
 `boot_b-Test.img` / `vendor_boot_b-Test.img` 由 `artifacts/kernel-7.2.9+/` 重新打包，
 脚本 50 会校验它们与上一轮已知可启动的 `boot-pearl-linux-final-v4.img` /

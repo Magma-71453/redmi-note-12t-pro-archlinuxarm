@@ -85,7 +85,7 @@ ln -sfn "/home/$PRIMARY_USER" /home/mobian
 printf '%s:pearl\nroot:CHANGE_ME_AT_BUILD\n' "$PRIMARY_USER" | chpasswd
 cat > /etc/tmpfiles.d/pearl-home.conf <<'TMPFILES'
 Z /home/alarm 0755 1000 1000 -
-z /var/lib/docker 0710 0 20 -
+z /var/lib/docker 0710 root docker -
 TMPFILES
 mkdir -p /etc/ssh/sshd_config.d
 cat > /etc/ssh/sshd_config.d/10-pearl-test.conf <<'SSH'
@@ -113,6 +113,7 @@ overlay
 br_netfilter
 veth
 bridge
+xt_conntrack
 MODULES
 cat > /etc/sysctl.d/90-docker-pearl.conf <<'SYSCTL'
 net.ipv4.ip_forward = 1
