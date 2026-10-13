@@ -13,8 +13,13 @@ source "$(dirname "$0")/00-env.sh"
 log "clean build-only files from rootfs"
 rm -f "$ROOTFS_DIR/usr/bin/qemu-aarch64-static"
 rm -f "$ROOTFS_DIR/tmp/rootfs-install-cmd.sh" "$ROOTFS_DIR/tmp/rootfs-packages.sh" "$ROOTFS_DIR/tmp/rootfs-configure.sh"
+rm -f "$ROOTFS_DIR/tmp/installed-test-build.txt" "$ROOTFS_DIR/tmp/installed-packages.txt"
 rm -rf "$ROOTFS_DIR/var/cache/pacman/pkg"/*
 rm -f "$ROOTFS_DIR/etc/pacman.conf.alarm-orig"
+find "$ROOTFS_DIR/run" -mindepth 1 -delete 2>/dev/null || true
+find "$ROOTFS_DIR/tmp" -mindepth 1 -delete 2>/dev/null || true
+# 启动后由 systemd-resolved 接管 /etc/resolv.conf
+ln -sfn /run/systemd/resolve/stub-resolv.conf "$ROOTFS_DIR/etc/resolv.conf"
 
 img="$OUT/$ROOTFS_IMAGE_NAME"
 log "create sparse image $img size=$ROOTFS_IMAGE_SIZE"
