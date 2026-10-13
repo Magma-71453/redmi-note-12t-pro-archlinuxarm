@@ -69,3 +69,13 @@ CONFIG_F2FS_FS=y
 - 桌面启动改为 systemd 服务 `pearl-labwc.service`（`/etc/systemd/system/`），
   不再依赖 getty autologin + `.bash_profile`；`getty@tty1.service` 已禁用。
 - 实测启动：kernel ~9.9s + userspace ~6.0s ≈ 15.9s。
+
+### 2026-10-14 suspend / USB 更新
+
+- USB 恢复 `CONFIG_USB_MTU3_DUAL_ROLE=y`（`GADGET`/`HOST` 由 dual-role 管理），
+  `mt6375-tcpc` 正常注册，充电和 USB-C 扩展坞 host 模式恢复；
+  ttyGS0 gadget 服务默认禁用。
+- `mtk-spmi-keys` 增加 PMIC IRQ + `enable_irq_wake`，电源键可作为 s2idle 唤醒源。
+- 尝试让 `mtk_drm_sys_suspend` 始终保存/恢复 DRM atomic state，但 mainline
+  DSI/OVL resume 后仍会 underrun、面板白屏；因此 `systemctl suspend` 改为
+  `pearl-sleep` 安全熄屏方案（不进入内核 suspend）。
