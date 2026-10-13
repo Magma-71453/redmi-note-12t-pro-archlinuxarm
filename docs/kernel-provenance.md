@@ -40,3 +40,19 @@ CONFIG_F2FS_FS=y
 
 > 仍待补：该内核的原始源码树/补丁。当前构建目录已丢失，只保留了二进制、模块、
 > DTB 和内核内嵌 config。后续如需从源码重编，需要先找回/重建 MT6895 驱动补丁。
+
+## 2026-10-14 更新：7.2.10++（Test 实际运行内核）
+
+- 源码：`https://github.com/MT6895-Mainline/linux`
+- 分支：`7.2-mt6895-xiaomi-pearl`
+- commit：`a908b7825c7d619873392e5fbbcba2e54695d0eb`
+- 构建：`scripts/kernel-build-gadget.sh`（`build/linux-mt6895`）
+- 配置：`artifacts/kernel-7.2.10++/config`
+  - 以旧 `artifacts/kernel-7.2.9+/config` 为底
+  - 合并 `arch/arm64/configs/pearl.config`：`CONFIG_MTK_DVFSRC=y`、
+    `CONFIG_INTERCONNECT_MTK*`（MMQOS/EMI）等，修复显示组件长期
+    `supplier soc@0:interconnect not ready` 导致 `mediatek-drm` 不注册的问题
+  - USB：`CONFIG_USB_MTU3_GADGET=y`，关闭 DUAL_ROLE/HOST，保持 gadget-only
+- 产物：`artifacts/kernel-7.2.10++/Image.gz`（内嵌 DTB，启动时覆盖 LK FDT）
+- 运行时 `uname -r`：`7.2.10++`；rootfs 内模块目录仍为 `7.2.9+`，
+  显示/存储/USB 等关键驱动为 built-in，Docker 已可用

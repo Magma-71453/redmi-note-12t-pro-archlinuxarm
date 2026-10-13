@@ -1,12 +1,12 @@
 # pearl-linux Test manifest
 version_title=Test
-build_date_utc=2026-10-13T11:14:29Z
+build_date_utc=2026-10-13T17:47:09Z
 device=pearl
 model=23054RA19C
 soc=mt6895
 arch=arm64
-kernel_release=7.2.9+
-kernel_asset=artifacts/kernel-7.2.9+
+kernel_release=7.2.10++
+kernel_asset=artifacts/kernel-7.2.10++
 rootfs_image=pearl-linux-rootfs-Test.img
 rootfs_image_size=10G
 boot_image=boot_b-Test.img

@@ -1,0 +1,13 @@
+[Unit]
+Description=Pearl USB ACM gadget setup
+DefaultDependencies=no
+After=local-fs.target
+Before=multi-user.target
+[Service]
+Type=oneshot
+RemainAfterExit=yes
+ExecStart=/usr/local/sbin/pearl-usb-gadget-setup
+StandardOutput=kmsg
+StandardError=kmsg
+[Install]
+WantedBy=multi-user.target
