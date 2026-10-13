@@ -1,0 +1,22 @@
+=== final evidence 2026-10-13T11:17:31Z ===
+git_head=556fc5b0cd0db5a022ae9fe6fcf0b341b8090f6b
+git_tag_commit=556fc5b0cd0db5a022ae9fe6fcf0b341b8090f6b
+git_clean=yes
+commits=11
+--- hashes ---
+f9a5e2be3dfbac0e7a4af3ac060b20f37db6c08248a0760be47b3dcd25f972a0  out/Test/pearl-linux-rootfs-Test.img
+e3778248aa599f19d5778f4022afe4bf4aa0d77a5bd05934460a72ec7812e1cf  out/Test/pearl-linux-rootfs-Test.img.zst
+e34ae45d3f0cc19dfc72e24e9dfe4927f5f1317fe269f675fb18ddb135734fde  out/Test/boot_b-Test.img
+0711787da078283c41b6c5277d1c211ee59e142e28ddf7ea8e1eca196b5cb26e  out/Test/vendor_boot_b-Test.img
+--- verify result ---
+VERIFY_RESULT=PASS
+--- artifacts ---
+-rw-r--r-- 2 magma magma  32M 10月13日 19:03 artifacts/Test/boot_b-Test.img
+-rw-r--r-- 2 magma magma  13M 10月13日 19:03 artifacts/Test/vendor_boot_b-Test.img
+-rw-r--r-- 1 magma magma  10G 10月13日 19:11 out/Test/pearl-linux-rootfs-Test.img
+-rw-r--r-- 1 magma magma 850M 10月13日 19:11 out/Test/pearl-linux-rootfs-Test.img.zst
+--- device state (read-only) ---
+_a
+lrwxrwxrwx 1 root root 16 2026-08-27 05:23 /dev/block/by-name/boot_b -> /dev/block/sdc72
+lrwxrwxrwx 1 root root 16 2026-08-27 05:23 /dev/block/by-name/linux -> /dev/block/sdc88
+lrwxrwxrwx 1 root root 16 2026-08-27 05:23 /dev/block/by-name/userdata -> /dev/block/sdc86
