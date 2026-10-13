@@ -14,3 +14,9 @@
 *.pk8
 *.p12
 .ssh/
+
+# mtkclient/tool state
+.state
+hwparam.json
+__pycache__/
+*.pyc
