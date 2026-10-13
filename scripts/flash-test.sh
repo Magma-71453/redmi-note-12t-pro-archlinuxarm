@@ -59,6 +59,20 @@ echo "mode=$([ "$STOCK_B" -eq 1 ] && echo stock-b || echo linux) erase=$DO_ERASE
 echo "log=$LOG"
 
 fastboot devices | grep -q . || { echo "ERROR: no fastboot device"; exit 1; }
+echo "允许操作: boot_b vendor_boot_b dtbo_b vbmeta_b vbmeta_system_b vbmeta_vendor_b misc linux"
+echo "明确不碰 : preloader/lk/md1img/nv/nvdata/nvram/persist/userdata/super/A槽"
+
+
+# 保护分区黑名单：脚本只允许动 B 槽启动链 + linux/log 分区。
+guard_part() {
+  local p="$1"
+  case "$p" in
+    preloader|preloader_*|preloader_raw*|lk|lk_*|md1img|md1img_*|nv|nvdata|nvram|nvcfg|persist|userdata|super|    boot_a|vendor_boot_a|dtbo_a|vbmeta_a|vbmeta_system_a|vbmeta_vendor_a|    proinfo|seccfg|frp|metadata|boot_para|para|expdb|oops|logo*|tee*|gz*|sspm*|mcupm*|gpueb*|apusys*|vcp*|ccu*|dpm*|scp*|pi_img*|mcf_ota*|spmfw*|audio_dsp*|connsys_*|dram_para|backup*|protect*|nvram)
+      echo "ERROR: 保护分区禁止操作: $p" >&2
+      exit 3
+      ;;
+  esac
+}
 
 # 生成全尺寸 / VBmeta 镜像的工具
 part_size_bytes() {
@@ -92,12 +106,14 @@ make_fullsize() { # src part dst
 
 erase_part() {
   local p="$1"
+  guard_part "$p"
   echo "==> erase $p"
   fastboot erase "$p" || echo "WARN: erase $p failed (will rely on full-size image)"
 }
 
 flash_part() {
   local p="$1" img="$2"
+  guard_part "$p"
   echo "==> flash $p <- $img"
   fastboot flash "$p" "$img" || { echo "ERROR: flash $p failed" >&2; exit 1; }
 }
