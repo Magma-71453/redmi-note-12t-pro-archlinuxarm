@@ -9,6 +9,7 @@ PKGS=(
   docker docker-compose
   labwc kitty neovim foot wl-clipboard
   mesa mesa-utils vulkan-icd-loader
+  vulkan-panfrost vulkan-tools vulkan-mesa-layers
   sudo git curl wget htop tmux jq rsync unzip
   python python-pip
   zram-generator earlyoom polkit seatd

@@ -69,6 +69,13 @@ chmod 600 "$ROOTFS_DIR/tmp/pearl-root-password"
 install -m755 "$REPO/scripts/rootfs-configure.sh" "$ROOTFS_DIR/tmp/rootfs-configure.sh"
 "$REPO/scripts/enter-rootfs.sh" "$ROOTFS_DIR" /bin/bash -l /tmp/rootfs-configure.sh
 
+# 6b. 安装交叉编译好的 Ollama Vulkan(aarch64) 载荷（若 artifacts 中存在）
+if [ -x "$ART/ollama-vulkan-arm64/bin/ollama" ]; then
+  "$REPO/scripts/install-ollama-gpu.sh" "$ROOTFS_DIR"
+else
+  log "WARN: $ART/ollama-vulkan-arm64 missing; run scripts/build-ollama-vulkan-arm64.sh"
+fi
+
 # 7. 初始化并填充 pacman keyring，然后恢复安全的签名级别
 "$REPO/scripts/enter-rootfs.sh" "$ROOTFS_DIR" /bin/bash -lc 'pacman-key --init && pacman-key --populate archlinuxarm'
 sed -i 's/^SigLevel[[:space:]]*=.*/SigLevel = Required DatabaseOptional/' "$ROOTFS_DIR/etc/pacman.conf"

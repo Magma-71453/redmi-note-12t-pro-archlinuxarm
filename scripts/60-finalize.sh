@@ -34,6 +34,11 @@ log "write manifest"
   echo "terminal=kitty"
   echo "editor=neovim"
   echo "containers=docker"
+  echo "gpu=panthor (Mali-G610 MC6) + Mesa PanVK"
+  echo "vulkan=vulkan-panfrost vulkan-tools vulkan-mesa-layers"
+  if [ -f "$ART/ollama-vulkan-arm64/VERSION" ]; then
+    grep -E '^ollama=|^llama_cpp=' "$ART/ollama-vulkan-arm64/VERSION" | sed 's/^/ollama_/'
+  fi
 } > "$OUT/MANIFEST.txt"
 
 cat "$OUT/MANIFEST.txt"
