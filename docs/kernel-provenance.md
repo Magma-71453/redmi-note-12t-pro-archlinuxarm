@@ -79,3 +79,15 @@ CONFIG_F2FS_FS=y
 - 尝试让 `mtk_drm_sys_suspend` 始终保存/恢复 DRM atomic state，但 mainline
   DSI/OVL resume 后仍会 underrun、面板白屏；因此 `systemctl suspend` 改为
   `pearl-sleep` 安全熄屏方案（不进入内核 suspend）。
+
+### 2026-10-15 更新：48-bit VA/PA 修复（GPU/Ollama 验证通过）
+
+- 问题：kernel 按 52-bit VA/PA + LPA2 编译，但 MT6895 Cortex-A78/A55 仅支持
+  48-bit VA，走 arm64 fallback（`vabits_actual=48`）时 `page_to_virt()` 地址
+  计算错误；panthor pin GEM 页触发 `clear_page` 内核 panic 并重启。
+- 修复：`scripts/kernel-build-gadget.sh` 编译前强制
+  `CONFIG_ARM64_VA_BITS_48=y`、`CONFIG_ARM64_PA_BITS_48=y`，关闭
+  `CONFIG_ARM64_LPA2`。`uname -r` 仍为 `7.2.10++`。
+- 验证镜像：`out/Test/avb/boot_b-Test-48va-avb.img`（旧 52-bit boot 镜像保留
+  可回滚）。真机验证：panthor 正常、`vulkaninfo` 识别 Mali-G610/PanVK、
+  Ollama 100% GPU（batch 上限需限制为 4，见 `docs/GPU-VULKAN-OLLAMA.md`）。

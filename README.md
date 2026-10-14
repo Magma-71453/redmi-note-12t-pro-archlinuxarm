@@ -5,10 +5,11 @@ Arch Linux ARM (aarch64) 系统。目标是服务器用途：**Docker、SSH、US
 labwc + kitty + neovim 桌面**，不用于游戏。
 
 - 内核：Linux **7.2.10++**，MT6895 pearl 专用分支（见 `docs/kernel-provenance.md`）
-- Rootfs：Arch Linux ARM，10 GiB ext4
+- Rootfs：Arch Linux ARM，10 GiB ext4（首次启动自动扩容到 linux 分区）
 - 桌面：labwc + kitty + foot + neovim + fastfetch + wvkbd 虚拟键盘
 - 布局：顶部 C/D 状态面板、中间 kitty、底部虚拟键盘（见 `docs/DESKTOP-LAYOUT.md`）
 - 容器：Docker / containerd，overlayfs 正常
+- GPU：Panthor + Mesa PanVK（Vulkan 1.4，Mali-G610 MC6）；Ollama Vulkan 见 `docs/GPU-VULKAN-OLLAMA.md`
 - 双系统：A 槽保留 Android，B 槽（`boot_b` + `linux=/dev/sdc88`）运行本系统
 
 > 本机真实代号是 `pearl`，不是 `elish`；`elish` 是 Xiaomi Pad 5 Pro 的代号。
@@ -74,6 +75,10 @@ scripts/50-bootimg-newkernel.sh
 # 4. 汇总校验和/清单
 scripts/60-finalize.sh
 
+# 5. GPU / Ollama Vulkan（aarch64 交叉编译，详见 docs/GPU-VULKAN-OLLAMA.md）
+scripts/build-ollama-vulkan-arm64.sh   # 产物 artifacts/ollama-vulkan-arm64/
+scripts/install-ollama-gpu.sh          # 安装进 build/rootfs-Test；30-rootfs.sh 会自动调用
+
 # 5. 桌面组件交叉编译（已包含在 rootfs 构建流程可选步骤中）
 scripts/build-wvkbd-arm64.sh
 scripts/build-pearl-panel.sh
@@ -88,6 +93,28 @@ scripts/install-desktop-tools.sh
 - Vendor boot：`out/Test/avb/vendor_boot_b-Test-avb.img`
 - 汇总：`out/Test/MANIFEST.txt`、`out/Test/SHA256SUMS-ALL`
 - 已将校验和/manifest 同步到 `artifacts/Test/`。
+
+## GPU / Vulkan / Ollama
+
+- GPU：Mali-G610 MC6 已通过 panthor + Mesa PanVK 提供 Vulkan 1.4。
+- Ollama：当前设备/Test 镜像使用官方 v0.40.4 源码 + 自编译 llama.cpp
+  `b11521` Vulkan 后端，实测 `100% GPU`（约 10 tokens/s，0.5B 模型）。
+- 内核必须为 48-bit VA/PA；`scripts/kernel-build-gadget.sh` 已自动强制。
+- 运行与从零重编的完整步骤见 **`docs/GPU-VULKAN-OLLAMA.md`**。
+
+```bash
+# 在设备上
+ollama pull qwen2.5:0.5b
+ollama run qwen2.5:0.5b
+ollama ps                     # PROCESSOR 应为 100% GPU
+
+# 在构建机上重编 Ollama Vulkan 载荷
+scripts/build-ollama-vulkan-arm64.sh
+scripts/install-ollama-gpu.sh build/rootfs-Test
+```
+
+> 官方 Ollama Linux arm64 包目前不含 Vulkan 后端（上游 PR #18466），
+> 直接用官方包会退回 CPU。
 
 ## 桌面布局
 

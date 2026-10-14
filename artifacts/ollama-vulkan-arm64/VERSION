@@ -1,0 +1,5 @@
+ollama=v0.40.4
+llama_cpp=b11521
+arch=aarch64
+backend=cpu+vulkan(panvk)
+built_utc=2026-10-14T23:10:00Z
