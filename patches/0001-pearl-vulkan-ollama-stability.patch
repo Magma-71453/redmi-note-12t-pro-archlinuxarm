@@ -1,0 +1,161 @@
+diff --git a/arch/arm64/boot/dts/mediatek/mt6895-xiaomi-pearl.dts b/arch/arm64/boot/dts/mediatek/mt6895-xiaomi-pearl.dts
+index f87280744..aab699791 100644
+--- a/arch/arm64/boot/dts/mediatek/mt6895-xiaomi-pearl.dts
++++ b/arch/arm64/boot/dts/mediatek/mt6895-xiaomi-pearl.dts
+@@ -235,7 +235,6 @@ mblock-31-md_mem_usage {
+ 		};
+ 		mblock-30-ccci_tag_mem {
+ 			reg = <0x00 0xbf6f0000 0x00 0x10000>;
+-			no-map;
+ 			compatible = "mediatek,ccci_tag_mem";
+ 		};
+ 		mblock-29-apu_apusys-rv_aee-coredump {
+diff --git a/arch/arm64/kernel/setup.c b/arch/arm64/kernel/setup.c
+index e502d8123..f906ceeba 100644
+--- a/arch/arm64/kernel/setup.c
++++ b/arch/arm64/kernel/setup.c
+@@ -1188,6 +1188,15 @@ void __init __no_sanitize_address setup_arch(char **cmdline_p)
+ 	/* PEARL-LKRMEM: reserve LK's own windows before we swap in our DTB. */
+ 	pearl_reserve_lk_reserved_mem();
+ 
++	/*
++	 * PEARL-RESERVE: two normal-RAM windows of LK's memory map have no
++	 * reliable linear mapping in the final page tables.  Keep them out of
++	 * the buddy allocator entirely; otherwise clear_page() faults when an
++	 * unrelated allocation lands there.  Cost: ~286 MiB of RAM.
++	 */
++	memblock_reserve(0xdb870000ULL, 0x11e70000ULL);
++	memblock_reserve(0xbf6f0000ULL, 0x10000ULL);
++
+ 	/*
+ 	 * PEARL: override the FDT LK handed us (its Android DT) with our own
+ 	 * embedded mt6895-xiaomi-pearl.dtb. Doing this right after
+@@ -1277,12 +1286,11 @@ void __init __no_sanitize_address setup_arch(char **cmdline_p)
+ 		 * real cmdline has to be appended here, before parse_early_param()
+ 		 * below.
+ 		 *
+-		 * ignore_loglevel (early_param): without it the console drops
+-		 * KERN_DEBUG and below, so the ramoops console zone never sees the
+-		 * tail of the boot/crash log.
++		 * PEARL-QUIET: keep the boot console quiet. Full boot logs are still
++		 * captured into expdb by pearl-debug-log.service.
+ 		 */
+-		if (!strstr(boot_command_line, "ignore_loglevel"))
+-			strncat(boot_command_line, " ignore_loglevel",
++		if (!strstr(boot_command_line, " quiet"))
++			strncat(boot_command_line, " quiet loglevel=3",
+ 				COMMAND_LINE_SIZE - strlen(boot_command_line) - 1);
+ 
+ 		/*
+diff --git a/arch/arm64/mm/mmu.c b/arch/arm64/mm/mmu.c
+index 1a5cf32a7..51e59b596 100644
+--- a/arch/arm64/mm/mmu.c
++++ b/arch/arm64/mm/mmu.c
+@@ -1138,6 +1138,68 @@ static inline void arm64_kfence_map_pool(void) { }
+ 
+ #endif /* CONFIG_KFENCE */
+ 
++static bool __init pearl_linear_map_present(phys_addr_t phys)
++{
++	unsigned long va = (unsigned long)__phys_to_virt(phys);
++	pgd_t *pgd = pgd_offset_k(va);
++	p4d_t *p4d;
++	pud_t *pud;
++	pmd_t *pmd;
++	pte_t *pte;
++
++	if (pgd_none(*pgd) || pgd_bad(*pgd))
++		return false;
++	p4d = p4d_offset(pgd, va);
++	if (p4d_none(*p4d) || p4d_bad(*p4d))
++		return false;
++	pud = pud_offset(p4d, va);
++	if (pud_none(*pud) || pud_bad(*pud))
++		return false;
++	if (pud_leaf(*pud))
++		return true;
++	pmd = pmd_offset(pud, va);
++	if (pmd_none(*pmd) || pmd_bad(*pmd))
++		return false;
++	if (pmd_leaf(*pmd))
++		return true;
++	pte = pte_offset_kernel(pmd, va);
++	return pte_present(*pte);
++}
++
++/*
++ * PEARL-MAP: map the two normal-RAM windows that LK describes in its own
++ * FDT but that ended up without a linear mapping (buddy allocator handed
++ * them out and clear_page() faulted).  Called from map_mem(), before
++ * bootmem_init() builds the zones.
++ */
++static void __init pearl_map_known_ram(int flags)
++{
++	static const struct {
++		phys_addr_t start;
++		phys_addr_t end;
++		const char *name;
++	} ranges[] = {
++		{ 0xbf6f0000ULL, 0xbf700000ULL, "ccci-tag" },
++		{ 0xdb870000ULL, 0xed6e0000ULL, "md-rem" },
++	};
++	int i;
++
++	for (i = 0; i < ARRAY_SIZE(ranges); i++) {
++		phys_addr_t start = ranges[i].start;
++		phys_addr_t end = ranges[i].end;
++		bool before;
++
++		if (!memblock_is_region_memory(start, end - start))
++			continue;
++		before = pearl_linear_map_present(start);
++		if (!before)
++			__map_memblock(start, end, pgprot_tagged(PAGE_KERNEL), flags);
++		pr_warn("PEARL-MAP: %s %pa-%pa before=%d after=%d\n",
++			ranges[i].name, &start, &end, before,
++			pearl_linear_map_present(start));
++	}
++}
++
+ static void __init map_mem(void)
+ {
+ 	static const u64 direct_map_end = _PAGE_END(VA_BITS_MIN);
+@@ -1196,6 +1258,7 @@ static void __init map_mem(void)
+ 		__map_memblock(start, end, pgprot_tagged(PAGE_KERNEL),
+ 			       flags);
+ 	}
++	pearl_map_known_ram(flags);
+ }
+ 
+ void mark_rodata_ro(void)
+diff --git a/drivers/misc/mediatek/ccci_util/ccci_util_lib_reserved_mem.c b/drivers/misc/mediatek/ccci_util/ccci_util_lib_reserved_mem.c
+index 8a8e27386..8566bd6d3 100644
+--- a/drivers/misc/mediatek/ccci_util/ccci_util_lib_reserved_mem.c
++++ b/drivers/misc/mediatek/ccci_util/ccci_util_lib_reserved_mem.c
+@@ -78,6 +78,26 @@ int free_reserved_memory(phys_addr_t start_phys,
+ 	phys_addr_t pos;
+ 	unsigned long pages = 0;
+ 
++	/* PEARL: keep the ccci tag window reserved; do not hand it to buddy. */
++	if (start_phys == 0xbf6f0000ULL && end_phys == 0xbf700000ULL) {
++		pr_info_once("ccci: keep tag window %pa-%pa reserved\n",
++			     &start_phys, &end_phys);
++		return 0;
++	}
++
++	/*
++	 * PEARL: never free memory that is not in the linear map.  The
++	 * embedded DTB marks several firmware windows as no-map; handing
++	 * those pages to the buddy allocator makes the kernel fault on
++	 * clear_page() as soon as they are reused.
++	 */
++	if (!memblock_is_map_memory(start_phys) ||
++	    !memblock_is_map_memory(end_phys - 1)) {
++		pr_warn("ccci: skip freeing non-mapped range %pa-%pa\n",
++			&start_phys, &end_phys);
++		return 0;
++	}
++
+ 	if (end_phys <= start_phys) {
+ 
+ 		pr_notice("%s end_phys is smaller than start_phys start_phys:0x%pa end_phys:0x%pa\n"
