@@ -91,3 +91,18 @@ CONFIG_F2FS_FS=y
 - 验证镜像：`out/Test/avb/boot_b-Test-48va-avb.img`（旧 52-bit boot 镜像保留
   可回滚）。真机验证：panthor 正常、`vulkaninfo` 识别 Mali-G610/PanVK、
   Ollama 100% GPU（batch 上限需限制为 4，见 `docs/GPU-VULKAN-OLLAMA.md`）。
+
+### 2026-10-15 深夜：LK 内存窗口 reserve（kernel #10）
+
+- 现象：48-bit VA + batch=4 后，较大模型/内存压力下仍会 `clear_page` panic
+  重启；pstore 定位到 phys `0xdb870000`，另有 UFS DMA cache 维护在
+  phys `0xbf6f0000` 首次 Oops。
+- 原因：LK FDT 的 RAM 映射中有两个正常 RAM 窗口在最终线性映射中缺失，
+  但仍被加入了 buddy zone；分配后 `clear_page()` fault。
+- 修复：`patches/0001-pearl-vulkan-ollama-stability.patch`
+  （`setup_arch()` 提前 reserve 两窗口 + `map_mem()` 显式映射检查 +
+  CCCI 不再释放 no-map/tag 窗口 + DTS 去掉 `mblock-30` 的 `no-map`）。
+  由 `scripts/kernel-build-gadget.sh` 在编译前自动、幂等应用。
+- 验证：`7.2.10++ #10`，qwen2.5:0.5b / phi4-mini-vk:3.8b 连续推理无重启；
+  MemTotal 约 7.0 GiB。phi4-mini 默认全 offload 的 PanVK `INSTR_BARRIER_FAULT`
+  是用户态问题，用 `num_gpu=32` 变体规避。

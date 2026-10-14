@@ -99,8 +99,13 @@ scripts/install-desktop-tools.sh
 - GPU：Mali-G610 MC6 已通过 panthor + Mesa PanVK 提供 Vulkan 1.4。
 - Ollama：当前设备/Test 镜像使用官方 v0.40.4 源码 + 自编译 llama.cpp
   `b11521` Vulkan 后端，实测 `100% GPU`（约 10 tokens/s，0.5B 模型）。
-- 内核必须为 48-bit VA/PA；`scripts/kernel-build-gadget.sh` 已自动强制。
+- 内核必须为 48-bit VA/PA，并应用
+  `patches/0001-pearl-vulkan-ollama-stability.patch`（LK 内存窗口 reserve，
+  防止随机重启）；`scripts/kernel-build-gadget.sh` 会自动、幂等应用。
 - 运行与从零重编的完整步骤见 **`docs/GPU-VULKAN-OLLAMA.md`**。
+- `phi4-mini:3.8b` 默认全 GPU offload 会触发 PanVK device lost；
+  用 `scripts/install-ollama-vulkan-models.sh` 创建 `phi4-mini-vk:3.8b`
+  （`num_gpu=32`）后运行。
 
 ```bash
 # 在设备上

@@ -48,6 +48,10 @@ if [ -x "$ARTIFACT/lib/ollama/llama-bench" ]; then
   ln -sfn /usr/local/lib/ollama/llama-bench "$ROOTFS/usr/local/bin/llama-bench"
 fi
 
+# Vulkan 安全模型变体辅助脚本（phi4-mini num_gpu=32 等）
+install -m755 "$REPO/scripts/install-ollama-vulkan-models.sh" \
+  "$ROOTFS/usr/local/bin/ollama-vk-models"
+
 # Vulkan/PanVK 稳定性调优：512 context + 关 flash attention + 限制命令流/分配策略。
 install -d -m755 "$ROOTFS/etc/systemd/system/ollama.service.d"
 cat > "$ROOTFS/etc/systemd/system/ollama.service.d/10-panvk-tune.conf" <<'CONF'

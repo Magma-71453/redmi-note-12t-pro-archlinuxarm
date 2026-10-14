@@ -374,3 +374,107 @@ systemctl restart ollama   # 设备上
 | Ollama 只走 CPU | 官方 arm64 包不含 Vulkan；使用本仓库编译的 payload，或检查 `OLLAMA_VULKAN=1` / `OLLAMA_IGPU_ENABLE=1` |
 | `ollama run` 非 TTY 卡住 | 用交互式 SSH，或用 `curl /api/generate` |
 | `/tmp` 下程序无法执行 | fstab 将 `/tmp` 挂为 `noexec`；用 `/home/alarm` 或正式安装路径 |
+
+---
+
+# 追加修复：LK 内存窗口无线性映射导致偶发重启（2026-10-15 深夜，kernel #10）
+
+在 48-bit VA 内核 + batch=4 之后，换用较大模型（phi4-mini:3.8b）仍会在
+系统内存压力上来时**内核重启**，pstore 现场为：
+
+```text
+Unhandled 64-bit el1h sync exception ... DABT (lower EL)
+pc : clear_page+0x30/0x74
+lr : prep_new_page+0x8c/0x164
+x19: fffffdffc26e1c00   -> pfn 0xdb870 -> phys 0xdb870000
+x0 : ffff00009b870000   -> __va(0xdb870000)
+PHYS_OFFSET: 0x40000000
+```
+
+另有一类首次 Oops 出现在 UFS DMA 的 cache 维护：
+
+```text
+dcache_clean_poc_nosync -> dma_direct_map_sg -> ufshcd_queuecommand
+x0: ffff00007f6f0000  -> phys 0xbf6f0000
+```
+
+根因：`setup_arch()` 用 LK FDT 的 `/memory` 填充 memblock（完整 8 GiB），
+再用内嵌 DTB 覆盖设备树；其中两个正常 RAM 窗口
+
+```text
+0xdb870000 - 0xed6dffff   (~286 MiB, System RAM)
+0xbf6f0000 - 0xbf6fffff   (64 KiB, ccci tag 窗口)
+```
+
+在最终页表中没有可靠线性映射，但仍在 buddy allocator 的 zone 里。内存压力
+上来后任意进程（llama-server、nmcli……）分到这些页就会在 `clear_page()`
+或 cache 维护时 fault，`panic_on_taint=20` 下最终重启。
+
+修复（`patches/0001-pearl-vulkan-ollama-stability.patch`，由
+`scripts/kernel-build-gadget.sh` 自动应用）：
+
+1. `arch/arm64/kernel/setup.c` 在 `setup_arch()` 早期 reserve：
+   ```c
+   memblock_reserve(0xdb870000ULL, 0x11e70000ULL);
+   memblock_reserve(0xbf6f0000ULL, 0x10000ULL);
+   ```
+   代价：MemTotal 从 ~7.3 GiB 降到 ~7.0 GiB，但坏区不再进入 buddy。
+2. `arch/arm64/mm/mmu.c` 在 `map_mem()` 后尝试显式映射这两个窗口，并打印
+   `PEARL-MAP: ... before= after=`，便于以后诊断。
+3. `drivers/misc/mediatek/ccci_util/ccci_util_lib_reserved_mem.c`：
+   - `free_reserved_memory()` 对 no-map 区间直接跳过；
+   - `bf6f0000` 的 ccci tag 窗口永不释放回 buddy。
+4. DTS `mblock-30-ccci_tag_mem` 去掉 `no-map`，使该 64 KiB 窗口可正常映射
+   （reserve 仍然生效）。
+
+真机验证：kernel `7.2.10++ #10`，`PEARL-MAP ... before=1 after=1`，
+连续 qwen2.5:0.5b / phi4-mini:3.8b 多轮推理不再重启。
+
+# phi4-mini:3.8b 的 PanVK 限制与变体（2026-10-15 验证）
+
+`phi4-mini:3.8b` 默认 `num_gpu=-1` 会尝试 33/33 层全部 offload，在 warmup 的
+`process_ubatch()` 触发：
+
+```text
+panthor ... CS_FAULT: CS_FAULT.EXCEPTION_TYPE: 0x55 (INSTR_BARRIER_FAULT)
+...
+ggml_vulkan: device lost on Vulkan0
+terminate called after throwing an instance of 'vk::DeviceLostError'
+  what():  vk::Device::waitForFences: ErrorDeviceLost
+```
+
+这是 PanVK/panthor shader 问题：**只崩溃 llama-server，内核不重启**。
+
+实测稳定上限（同一轮 boot，batch=4、ctx=512）：
+
+```text
+num_gpu=0 (CPU)  -> 200，约 6-7 tok/s
+num_gpu=8/16/24/28/30/31/32 -> 200，约 6-8 tok/s
+num_gpu=-1 (33/33) -> CS_FAULT / device lost
+```
+
+因此对 phi4-mini 使用 `num_gpu=32`（最末输出层留 CPU）。创建变体：
+
+```bash
+# 设备上，先 pull 基础模型
+ollama pull phi4-mini:3.8b
+
+# 方式一：仓库脚本
+scripts/install-ollama-vulkan-models.sh
+
+# 方式二：手动
+ollama create phi4-mini-vk:3.8b -f - <<'MF'
+FROM phi4-mini:3.8b
+PARAMETER num_ctx 512
+PARAMETER num_gpu 32
+MF
+
+ollama run phi4-mini-vk:3.8b
+```
+
+API 也可以对 `phi4-mini:3.8b` 显式传 `"options":{"num_gpu":32,"num_ctx":512}`；
+不要使用默认的全 offload。
+
+> 说明：`libngtcp2.so.16 unsupported version of Verneed record` 和 dockerd
+> 崩溃是设备 rootfs 的包状态/文件损坏问题，与内核补丁无关；重新刷入
+> `scripts/40-image.sh` 生成的新 rootfs 镜像即可恢复干净系统。
