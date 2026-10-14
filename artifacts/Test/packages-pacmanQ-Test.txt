@@ -300,6 +300,9 @@ util-linux-libs 2.42.4-1
 vim 9.2.1178-1
 vim-runtime 9.2.1178-1
 vulkan-icd-loader 1.4.363.0-1
+vulkan-mesa-implicit-layers 1:26.2.4-1
+vulkan-panfrost 1:26.2.4-1
+vulkan-tools 1.4.363.0-1
 wayland 1.26.0-1
 wayland-protocols 1.49-1
 wget 1.25.0-6
@@ -309,6 +312,7 @@ wlroots0.20 0.20.2-1
 wpa_supplicant 2:2.12-1
 xcb-proto 1.17.0-4
 xcb-util-errors 1.0.1-2
+xcb-util-keysyms 0.4.1-5
 xcb-util-renderutil 0.3.10-2
 xcb-util-wm 0.4.2-2
 xkeyboard-config 2.48-1

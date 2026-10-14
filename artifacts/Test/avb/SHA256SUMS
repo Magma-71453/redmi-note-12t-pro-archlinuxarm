@@ -1,2 +1,2 @@
-5e8273c1edda75430de6755b350bde209fea941aa2b3a2bc7c023c921c57a016  out/Test/avb/boot_b-Test-avb.img
-3cbacac70c1719484cc0eb22d7a360afa8fc651cf7239739570fdc526af87312  out/Test/avb/vendor_boot_b-Test-avb.img
+a6efd4ca1e22ca08de0110da508d142ab7bbad03b94a75e5f89809138a08f15e  boot_b-Test-avb.img
+3cbacac70c1719484cc0eb22d7a360afa8fc651cf7239739570fdc526af87312  vendor_boot_b-Test-avb.img
