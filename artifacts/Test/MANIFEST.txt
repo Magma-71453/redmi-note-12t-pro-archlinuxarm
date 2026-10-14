@@ -1,6 +1,6 @@
 # pearl-linux Test manifest
 version_title=Test
-build_date_utc=2026-10-13T19:22:37Z
+build_date_utc=2026-10-14T18:41:12Z
 device=pearl
 model=23054RA19C
 soc=mt6895
@@ -18,3 +18,7 @@ desktop=labwc
 terminal=kitty
 editor=neovim
 containers=docker
+gpu=panthor (Mali-G610 MC6) + Mesa PanVK
+vulkan=vulkan-panfrost vulkan-tools vulkan-mesa-layers
+ollama_ollama=v0.40.4
+ollama_llama_cpp=b11521
