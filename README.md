@@ -12,8 +12,6 @@ labwc + kitty + neovim 桌面**，不用于游戏。
 - GPU：Panthor + Mesa PanVK（Vulkan 1.4，Mali-G610 MC6）；Ollama Vulkan 见 `docs/GPU-VULKAN-OLLAMA.md`
 - 双系统：A 槽保留 Android，B 槽（`boot_b` + `linux=/dev/sdc88`）运行本系统
 
-> 本机真实代号是 `pearl`，不是 `elish`；`elish` 是 Xiaomi Pad 5 Pro 的代号。
-> 为避免刷错，本项目所有产物都按 `pearl` / MT6895 构建。
 
 ## 安全警告（重要）
 
@@ -132,14 +130,3 @@ scripts/install-ollama-gpu.sh build/rootfs-Test
 
 电源键被映射为 **屏幕 DPMS 开关**，不会关机；关机请在终端执行 `poweroff`。
 
-## 上传 GitHub
-
-仓库当前未配置 remote。创建远端仓库后：
-
-```bash
-git remote add origin git@github.com:<user>/<repo>.git
-git push -u origin main
-```
-
-请先确认 `git status` 干净、`out/`、`build/`、`logs/`、`downloads/`、`.state/`、
-`hwparam.json` 没有被提交（它们都在 `.gitignore` 中）。
