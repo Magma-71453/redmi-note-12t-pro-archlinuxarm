@@ -25,5 +25,3 @@ linux    -> /dev/block/sdc88
 userdata -> /dev/block/sdc86
 ```
 
-结论：`elish` 是 Xiaomi Pad 5 Pro (SM8250) 代号；真机是 `pearl` (MT6895)。
-本项目按 `pearl` 真机构建，不按 `elish` 构建错误 DTB。
