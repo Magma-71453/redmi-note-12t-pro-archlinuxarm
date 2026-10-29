@@ -1,0 +1,87 @@
+#!/usr/bin/env python3
+# Pearl 旁路供电开关：on = 插电即停充（系统由 VBUS 供电），off = 回到 80% 上限逻辑。
+# 只负责持久化开关状态并通知守护进程重读；真正的 sysfs 写入由 pearl-charge-limit.py 完成。
+# 写 /var/lib/pearl-charge/state.json 需要 root（status 只读，普通用户可运行）。
+import json, os, subprocess, sys
+
+STATE = os.environ.get('PEARL_STATE_FILE', '/var/lib/pearl-charge/state.json')
+UNIT = os.environ.get('PEARL_CHARGE_UNIT', 'pearl-charge-limit.service')
+
+USAGE = f'''用法: pearl-bypass on|off|status
+
+  on      开启旁路供电：只要插着 USB 就停充，系统由 VBUS 供电（旁路优先于 80% 上限）
+  off     关闭旁路供电：回到 80% 充电上限逻辑
+  status  显示当前开关状态（只读，不需要 root）
+
+状态文件: {STATE}
+守护进程: {UNIT}（写入后发 SIGHUP 让它立即重读；未运行也会在下一个轮询周期生效）
+写状态需要 root。'''
+
+
+def load():
+    try:
+        with open(STATE, encoding='utf-8') as fh:
+            return bool(json.load(fh).get('bypass', False))
+    except (OSError, ValueError):
+        return False
+
+
+def save(flag):
+    directory = os.path.dirname(STATE)
+    if directory:
+        os.makedirs(directory, exist_ok=True)
+    tmp = STATE + '.tmp'
+    with open(tmp, 'w', encoding='utf-8') as fh:
+        json.dump({'bypass': bool(flag)}, fh)
+        fh.write('\n')
+    os.replace(tmp, STATE)  # 原子替换，避免守护读到半截
+
+
+def nudge():
+    try:
+        proc = subprocess.run(['systemctl', 'kill', '--signal=HUP', UNIT],
+                              capture_output=True, text=True)
+    except OSError as exc:
+        print('pearl-bypass: 无法调用 systemctl (%r)，守护会在下个轮询周期生效' % (exc,))
+        return
+    if proc.returncode == 0:
+        print('pearl-bypass: 已通知 %s 立即重读状态' % (UNIT,))
+    else:
+        print('pearl-bypass: 未通知 %s（%s），守护会在下个轮询周期生效'
+              % (UNIT, (proc.stderr or proc.stdout).strip() or 'returncode %d' % proc.returncode))
+
+
+def main(argv):
+    if not argv:
+        print(USAGE)
+        return 2
+    cmd = argv[0]
+    if cmd in ('-h', '--help', 'help'):
+        print(USAGE)
+        return 0
+    if cmd == 'status':
+        on = load()
+        print('旁路供电: %s' % ('开启（插电即停充，由 VBUS 供电）' if on else '关闭（按 80% 上限充电）'))
+        print('状态文件: %s%s' % (STATE, '' if os.path.exists(STATE) else '（尚未创建，视为关闭）'))
+        return 0
+    if cmd not in ('on', 'off'):
+        print('pearl-bypass: 未知命令 %r' % (cmd,), file=sys.stderr)
+        print(USAGE, file=sys.stderr)
+        return 2
+    want = cmd == 'on'
+    current = load()
+    try:
+        save(want)
+    except OSError as exc:
+        print('pearl-bypass: 无法写入 %s: %r（需要 root）' % (STATE, exc), file=sys.stderr)
+        return 1
+    print('旁路供电: %s -> %s' % ('开启' if current else '关闭', '开启' if want else '关闭'))
+    if current == want:
+        print('pearl-bypass: 状态未变化')
+        return 0
+    nudge()
+    return 0
+
+
+if __name__ == '__main__':
+    sys.exit(main(sys.argv[1:]))

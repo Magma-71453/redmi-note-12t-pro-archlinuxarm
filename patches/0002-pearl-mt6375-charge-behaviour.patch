@@ -1,0 +1,136 @@
+diff --git a/drivers/power/supply/mediatek/mt6375-charger.c b/drivers/power/supply/mediatek/mt6375-charger.c
+index 4274a3c..7b2b450 100644
+--- a/drivers/power/supply/mediatek/mt6375-charger.c
++++ b/drivers/power/supply/mediatek/mt6375-charger.c
+@@ -256,6 +256,8 @@ struct mt6375_chg_data {
+ 	/* Serializes negotiated sink power and the OTG regulator callbacks. */
+ 	struct mutex power_lock;
+ 	bool tcpm_managed;
++	/* Userspace charge_behaviour switch; TCPM must not override it. */
++	bool charge_inhibited;
+ 	bool source_enabled;
+ 	bool power_fault;
+ 	bool sink_requested;
+@@ -1174,6 +1176,21 @@ static int mt6375_chg_enable_bc12(struct mt6375_chg_data *ddata, bool en)
+ 
+ #include "mt6375-tcpm.h"
+ 
++/*
++ * Apply the user charge_behaviour switch. In the TCPM case the sink request is
++ * remembered, so restoring "auto" can hand the negotiated limit back.
++ */
++static int mt6375_chg_apply_charge_inhibit(struct mt6375_chg_data *ddata)
++{
++	if (!ddata->tcpm_managed)
++		return mt6375_chg_enable_charging(ddata,
++				!ddata->charge_inhibited &&
++				atomic_read(&ddata->attach));
++	if (ddata->charge_inhibited)
++		return mt6375_tcpm_inhibit_charge(ddata);
++	return mt6375_tcpm_apply_sink(ddata);
++}
++
+ static void mt6375_rerun_bc12_work(struct work_struct *work)
+ {
+ 	struct mt6375_chg_data *ddata = container_of(work,struct mt6375_chg_data, rerun_bc12_work.work);
+@@ -1368,6 +1385,7 @@ static enum power_supply_property mt6375_chg_psy_properties[] = {
+ 	POWER_SUPPLY_PROP_VOLTAGE_MAX,
+ 	POWER_SUPPLY_PROP_CALIBRATE,
+ 	POWER_SUPPLY_PROP_ENERGY_EMPTY,
++	POWER_SUPPLY_PROP_CHARGE_BEHAVIOUR,
+ };
+ 
+ static int mt6375_chg_property_is_writeable(struct power_supply *psy,
+@@ -1375,6 +1393,9 @@ static int mt6375_chg_property_is_writeable(struct power_supply *psy,
+ {
+ 	struct mt6375_chg_data *ddata = power_supply_get_drvdata(psy);
+ 
++	/* The user charge switch must stay writable even under TCPM. */
++	if (psp == POWER_SUPPLY_PROP_CHARGE_BEHAVIOUR)
++		return 1;
+ 	/* Managed power requests come from TCPM, not sysfs charging controls. */
+ 	if (ddata->tcpm_managed)
+ 		return 0;
+@@ -1503,6 +1524,12 @@ static int mt6375_chg_get_property(struct power_supply *psy,
+ 	case POWER_SUPPLY_PROP_ENERGY_EMPTY:
+ 		val->intval = ddata->vbat0_flag;
+ 		break;
++	case POWER_SUPPLY_PROP_CHARGE_BEHAVIOUR:
++		/* Software state only: the register mirrors what TCPM last wrote. */
++		val->intval = ddata->charge_inhibited ?
++			      POWER_SUPPLY_CHARGE_BEHAVIOUR_INHIBIT_CHARGE :
++			      POWER_SUPPLY_CHARGE_BEHAVIOUR_AUTO;
++		break;
+ 	default:
+ 		ret = -EINVAL;
+ 		break;
+@@ -1518,6 +1545,20 @@ static int mt6375_chg_set_property(struct power_supply *psy,
+ 	u32 vbus = 0;
+ 	struct mt6375_chg_data *ddata = power_supply_get_drvdata(psy);
+ 
++	if (psp == POWER_SUPPLY_PROP_CHARGE_BEHAVIOUR) {
++		if (val->intval != POWER_SUPPLY_CHARGE_BEHAVIOUR_AUTO &&
++		    val->intval != POWER_SUPPLY_CHARGE_BEHAVIOUR_INHIBIT_CHARGE)
++			return -EINVAL;
++		mutex_lock(&ddata->power_lock);
++		ddata->charge_inhibited =
++			val->intval == POWER_SUPPLY_CHARGE_BEHAVIOUR_INHIBIT_CHARGE;
++		ret = mt6375_chg_apply_charge_inhibit(ddata);
++		mutex_unlock(&ddata->power_lock);
++		if (!ret)
++			power_supply_changed(ddata->psy);
++		return ret;
++	}
++
+ 	if (ddata->tcpm_managed)
+ 		return mt6375_tcpm_set_property(ddata, psp, val);
+ 
+@@ -1609,6 +1650,8 @@ static const struct power_supply_desc mt6375_psy_desc = {
+ 		     BIT(POWER_SUPPLY_USB_TYPE_DCP),
+ 	.properties = mt6375_chg_psy_properties,
+ 	.num_properties = ARRAY_SIZE(mt6375_chg_psy_properties),
++	.charge_behaviours = BIT(POWER_SUPPLY_CHARGE_BEHAVIOUR_AUTO) |
++			     BIT(POWER_SUPPLY_CHARGE_BEHAVIOUR_INHIBIT_CHARGE),
+ 	.property_is_writeable = mt6375_chg_property_is_writeable,
+ 	.get_property = mt6375_chg_get_property,
+ 	.set_property = mt6375_chg_set_property,
+diff --git a/drivers/power/supply/mediatek/mt6375-tcpm.h b/drivers/power/supply/mediatek/mt6375-tcpm.h
+index ce1502a..37464cf 100644
+--- a/drivers/power/supply/mediatek/mt6375-tcpm.h
++++ b/drivers/power/supply/mediatek/mt6375-tcpm.h
+@@ -148,12 +148,35 @@ static int mt6375_tcpm_stop_sink(struct mt6375_chg_data *ddata)
+ 	return ret;
+ }
+ 
++/*
++ * Stop charging the battery but keep the buck running so the system is fed from
++ * VBUS while the battery current settles to zero ("bypass" power).
++ *
++ * Measured on pearl: with a charger attached, BUCK_EN=0 leaves the phone
++ * discharging (-275 mA drawn from the battery) even though TCPM is happy,
++ * while BUCK_EN=1 + CHG_EN=0 converges to 0 uA and reports "Not charging".
++ */
++static int mt6375_tcpm_inhibit_charge(struct mt6375_chg_data *ddata)
++{
++	int ret;
++
++	ret = mt6375_chg_field_set(ddata, F_CHG_EN, 0);
++	if (!ret)
++		ret = mt6375_chg_field_set(ddata, F_BUCK_EN, 1);
++	if (ret)
++		ddata->power_fault = true;
++	return ret;
++}
++
+ static int mt6375_tcpm_apply_sink(struct mt6375_chg_data *ddata)
+ {
+ 	int ret;
+ 	bool enable = ddata->sink_requested &&
+ 		      ddata->sink_limit_ua >= MT6375_TCPM_SINK_ENABLE_UA;
+ 
++	/* A TCPM sink request must not restart charging the user stopped. */
++	if (ddata->charge_inhibited)
++		return mt6375_tcpm_inhibit_charge(ddata);
+ 	if (!enable)
+ 		return mt6375_tcpm_stop_sink(ddata);
+ 	if (ddata->power_fault || ddata->source_enabled)
