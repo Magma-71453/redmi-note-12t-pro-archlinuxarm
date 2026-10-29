@@ -1,0 +1,15 @@
+[Unit]
+Description=Pearl charge control: 80% charge limit and bypass power (needs root to write /sys/class/power_supply/mtk-master-charger/charge_behaviour)
+StartLimitIntervalSec=0
+After=multi-user.target
+
+[Service]
+Type=simple
+ExecStart=/usr/local/bin/pearl-charge-limit.py
+Restart=always
+RestartSec=5
+StandardOutput=journal
+StandardError=journal
+
+[Install]
+WantedBy=multi-user.target
