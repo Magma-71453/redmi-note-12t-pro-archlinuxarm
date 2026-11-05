@@ -11,12 +11,12 @@ e34ae45d3f0cc19dfc72e24e9dfe4927f5f1317fe269f675fb18ddb135734fde  out/Test/boot_
 --- verify result ---
 VERIFY_RESULT=PASS
 --- artifacts ---
--rw-r--r-- 2 builduser builduser  32M 10月13日 19:03 artifacts/Test/boot_b-Test.img
--rw-r--r-- 2 builduser builduser  13M 10月13日 19:03 artifacts/Test/vendor_boot_b-Test.img
--rw-r--r-- 1 builduser builduser  10G 10月13日 19:11 out/Test/pearl-linux-rootfs-Test.img
--rw-r--r-- 1 builduser builduser 850M 10月13日 19:11 out/Test/pearl-linux-rootfs-Test.img.zst
+-rw-r--r-- 32M artifacts/Test/boot_b-Test.img
+-rw-r--r-- 13M artifacts/Test/vendor_boot_b-Test.img
+-rw-r--r-- 10G out/Test/pearl-linux-rootfs-Test.img
+-rw-r--r-- 850M out/Test/pearl-linux-rootfs-Test.img.zst
 --- device state (read-only) ---
-_a
-lrwxrwxrwx 1 root root 16 2026-08-27 05:23 /dev/block/by-name/boot_b -> /dev/block/sdc72
-lrwxrwxrwx 1 root root 16 2026-08-27 05:23 /dev/block/by-name/linux -> /dev/block/sdc88
-lrwxrwxrwx 1 root root 16 2026-08-27 05:23 /dev/block/by-name/userdata -> /dev/block/sdc86
+slot_suffix=_a
+boot_b -> /dev/block/sdc72
+linux -> /dev/block/sdc88
+userdata -> /dev/block/sdc86

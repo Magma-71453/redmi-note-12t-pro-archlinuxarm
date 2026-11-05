@@ -3,11 +3,11 @@
 目标：在 Redmi Note 12T Pro（`pearl`，MT6895）的 armarchlinux-pearl 上，
 用开源驱动栈提供 Vulkan，并让 Ollama 通过 Vulkan 使用 Mali-G610。
 
-## 结论（真机已验证，2026-10-15）
+## 结论（该设备上已验证，2026-10-15）
 
 - 内核：`panthor` 1.8.0（built-in），GPU `13000000.gpu` 绑定成功，
   `/dev/dri/card1` 与 `/dev/dri/renderD128` 为 Mali。
-- 内核必须使用 **48-bit VA/PA**（见下文内核 panic）；当前真机 `uname -r` 为
+- 内核必须使用 **48-bit VA/PA**（见下文内核 panic）；该设备上 `uname -r` 为
   `7.2.10++`，`CONFIG_ARM64_VA_BITS=48`、`CONFIG_ARM64_PA_BITS=48`。
 - 用户态：Arch Linux ARM `vulkan-panfrost` 1:26.2.4-1（PanVK）。
   `vulkaninfo --summary`：
@@ -24,7 +24,7 @@
   （上游 PR #18466 仍 open）。本仓库用官方 v0.40.4 源码的 Go 主程序 +
   交叉编译的 llama.cpp `b11521` Vulkan 后端（`libggml-vulkan.so`）。
 
-- 真机实测 `ollama run` / `/api/generate`：
+- 该设备实测 `ollama run` / `/api/generate`：
 
   ```text
   PROCESSOR = 100% GPU
@@ -35,7 +35,7 @@
 
 ## 内核侧：52-bit VA 回退导致 panthor 内核 panic
 
-本项目早期内核按 `CONFIG_ARM64_VA_BITS_52 + ARM64_PA_BITS_52 + LPA2` 编译，
+该仓库早期内核按 `CONFIG_ARM64_VA_BITS_52 + ARM64_PA_BITS_52 + LPA2` 编译，
 但 MT6895（Cortex-A78/A55）只支持 48-bit VA，内核在启动时进入
 `vabits_actual=48` 回退路径并调整 `memstart_addr`。该路径下 `page_to_virt()`
 会算出未映射的线性映射地址，panthor 第一次 pin 大 GEM 对象时触发：
@@ -62,7 +62,7 @@ CONFIG_ARM64_PA_BITS_48=y       (disable 52)
 CONFIG_ARM64_LPA2 关闭
 ```
 
-真机验证：`uname -r` 仍是 `7.2.10++`，但不再 panic，panthor/Vulkan/llama.cpp
+该设备验证：`uname -r` 仍是 `7.2.10++`，但不再 panic，panthor/Vulkan/llama.cpp
 正常工作。验证内核镜像为 `out/Test/avb/boot_b-Test-48va-avb.img`。
 
 （`pearl-thp-shmem-deny.service` 只是额外保守措施，强制 shmem 不使用大页，
@@ -114,7 +114,7 @@ scripts/install-ollama-gpu.sh build/rootfs-Test
 decode() failed: vk::CommandBuffer::end: ErrorOutOfDeviceMemory
 ```
 
-真机实测：
+该设备实测：
 
 ```text
 -b/-ub 16/32/64/128/512  -> OOM
@@ -147,7 +147,7 @@ GGML_VK_PREFER_HOST_MEMORY=1
 `systemctl daemon-reload && systemctl restart ollama`，再按上面的方法实测；
 `OLLAMA_VK_BATCH` 可单独覆盖 wrapper 的 batch。
 
-## 真机验证命令
+## 该设备验证命令
 
 ```bash
 # 1. 内核 VA 与 Vulkan 设备
@@ -191,7 +191,7 @@ curl -s http://127.0.0.1:11434/api/generate \
 
 # 从零重编 Ollama（x86_64 构建机 → aarch64 设备）
 
-本节记录本项目实际使用的完整步骤，便于以后 Ollama/llama.cpp 升级或重新构建。
+本节记录该仓库实际使用的完整步骤，便于以后 Ollama/llama.cpp 升级或重新构建。
 
 ## 0. 构建机依赖
 
@@ -204,7 +204,7 @@ sudo pacman -S --needed \
   vulkan-headers spirv-tools shaderc glslang
 ```
 
-`spirv-headers` 如果未安装，脚本会自动从 Arch 镜像下载 package 并解包到
+`spirv-headers` 如果未安装，脚本会自动从 Arch 镜像获取 package 并解包到
 `build/ollama-vulkan/host-spirv/`。目标 aarch64 的 Vulkan loader 需要先有
 `build/rootfs-Test/usr/lib/libvulkan.so.1`（由 `scripts/30-rootfs.sh` 或
 ALARM `vulkan-icd-loader` 包提供）。
@@ -219,7 +219,7 @@ llama.cpp    b11521    (Ollama 仓库内的 LLAMA_CPP_VERSION)
 ## 1. 使用脚本一键构建（推荐）
 
 ```bash
-cd redmi-note-12t-pro-linux
+cd redmi-note-12t-pro-archlinuxarm
 scripts/build-ollama-vulkan-arm64.sh
 ```
 
@@ -286,7 +286,7 @@ cmake --install build/llama-server-cpu --component llama-server --strip
 # 准备 host Vulkan SDK 目录（headers + 目标 loader + spirv headers）
 VKS="$WORK/vk-sdk"; rm -rf "$VKS"; mkdir -p "$VKS/include" "$VKS/lib"
 cp -a /usr/include/vulkan /usr/include/vk_video "$VKS/include/" 2>/dev/null || true
-# spirv-headers 可由 pacman -Sp spirv-headers 下载后解包到 $WORK/host-spirv
+# spirv-headers 可由 pacman -Sp spirv-headers 获取后解包到 $WORK/host-spirv
 cp -a "$WORK/host-spirv/usr/include/spirv" "$VKS/include/"
 cp -L build/rootfs-Test/usr/lib/libvulkan.so.1 "$VKS/lib/libvulkan.so"
 
@@ -377,7 +377,7 @@ systemctl restart ollama   # 设备上
 
 ---
 
-# 追加修复：LK 内存窗口无线性映射导致偶发重启（2026-10-15 深夜，kernel #10）
+# 追加修复：LK 内存窗口无线性映射导致偶发重启（2026-10-15，kernel #10）
 
 在 48-bit VA 内核 + batch=4 之后，换用较大模型（phi4-mini:3.8b）仍会在
 系统内存压力上来时**内核重启**，pstore 现场为：
@@ -427,7 +427,7 @@ x0: ffff00007f6f0000  -> phys 0xbf6f0000
 4. DTS `mblock-30-ccci_tag_mem` 去掉 `no-map`，使该 64 KiB 窗口可正常映射
    （reserve 仍然生效）。
 
-真机验证：kernel `7.2.10++ #10`，`PEARL-MAP ... before=1 after=1`，
+该设备验证：kernel `7.2.10++ #10`，`PEARL-MAP ... before=1 after=1`，
 连续 qwen2.5:0.5b / phi4-mini:3.8b 多轮推理不再重启。
 
 # phi4-mini:3.8b 的 PanVK 限制与变体（2026-10-15 验证）

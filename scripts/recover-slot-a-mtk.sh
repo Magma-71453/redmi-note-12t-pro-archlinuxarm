@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 # 把 pearl 的 misc 槽位元数据写回 Android slot A。
-# 仅使用本机已实测可过 DAA 的官方 DA_BR.bin + preloader_pearl.bin。
+# 仅使用已实测可过 DAA 的官方 DA_BR.bin + preloader_pearl.bin。
 # 目标设备状态：preloader 模式（lsusb 显示 0e8d:2000）。
 #
 # 用法:
@@ -9,10 +9,23 @@
 set -uo pipefail
 REPO="$(cd "$(dirname "$0")/.." && pwd)"
 MTK="${MTK:-$REPO/build/mtk-venv/bin/mtk}"
-PRELOADER="$PEARL_ROM_DIR/images/preloader_pearl.bin"
-LOADER="$PEARL_ROM_DIR/images/download_agent/DA_BR.bin"
-MISC_A="${MISC_A:-$PEARL_ANDROID_A_DIR/misc-slot-a.img}"
-MISC_STOCK="${MISC_STOCK:-$PEARL_BACKUP_DIR/misc.img}"
+# 外部固件/镜像资源目录（可用同名环境变量覆盖；默认相对仓库根）。
+# 目录内容约定见 README 的「外部固件与镜像资源目录」一节。
+MEDIA="${PEARL_MEDIA_DIR:-$REPO/downloads/pearl-media}"
+ROM_DIR="${PEARL_ROM_DIR:-$MEDIA/rom}"
+BACKUP_DIR="${PEARL_BACKUP_DIR:-$MEDIA/backup}"
+ANDROID_A_DIR="${PEARL_ANDROID_A_DIR:-$MEDIA/android-recovery-slot-a}"
+PRELOADER="${PRELOADER:-$ROM_DIR/images/preloader_pearl.bin}"
+LOADER="${LOADER:-$ROM_DIR/images/download_agent/DA_BR.bin}"
+MISC_A="${MISC_A:-$ANDROID_A_DIR/misc-slot-a.img}"
+MISC_STOCK="${MISC_STOCK:-$BACKUP_DIR/misc.img}"
+
+need_media() {
+  [ -f "$1" ] && return 0
+  echo "ERROR: 缺少外部固件/镜像资源: $1" >&2
+  echo "       需先准备外部固件/镜像资源目录，见 README 的外部固件与镜像资源目录一节" >&2
+  exit 1
+}
 WAIT=0
 [ "${1:-}" = "--wait" ] && WAIT=1
 
@@ -31,9 +44,10 @@ echo "loader    : $LOADER"
 echo "misc image: $MISC_A"
 echo
 
-for f in "$MTK" "$PRELOADER" "$LOADER" "$MISC_A"; do
-  [ -f "$f" ] || { echo "ERROR: missing $f"; exit 1; }
-done
+[ -f "$MTK" ] || { echo "ERROR: 缺少 mtkclient: $MTK" >&2; exit 1; }
+need_media "$PRELOADER"
+need_media "$LOADER"
+need_media "$MISC_A"
 
 if ! is_preloader; then
   if [ "$WAIT" -eq 1 ]; then
@@ -70,11 +84,16 @@ echo "==> 写入 misc-slot-a.img（强制 A 槽 active+successful）"
 rc=$?
 echo "mtk_write_rc=$rc"
 
-if [ "$rc" -ne 0 ] && [ -f "$MISC_STOCK" ]; then
-  echo "首次写入失败，尝试 stock misc.img ..."
-  "$MTK" w misc "$MISC_STOCK" --preloader $PRELOADER --loader "$LOADER"
-  rc=$?
-  echo "mtk_write_stock_rc=$rc"
+if [ "$rc" -ne 0 ]; then
+  if [ -f "$MISC_STOCK" ]; then
+    echo "首次写入失败，尝试 stock misc.img ..."
+    "$MTK" w misc "$MISC_STOCK" --preloader $PRELOADER --loader "$LOADER"
+    rc=$?
+    echo "mtk_write_stock_rc=$rc"
+  else
+    echo "首次写入失败，且未找到备用镜像 $MISC_STOCK" >&2
+    echo "       需先准备外部固件/镜像资源目录，见 README 的外部固件与镜像资源目录一节" >&2
+  fi
 fi
 
 if [ "$rc" -eq 0 ]; then

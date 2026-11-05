@@ -16,7 +16,7 @@
   scripts/verify-test.sh
   scripts/20-kernel-assets.sh
 
-真机验证：
+该设备验证：
   - B 槽引导成功，uname -r = 7.2.10++
   - mediatek-drm card0 + DSI-1 connected，labwc/kitty/wvkbd/pearl-panel 运行
   - Docker daemon active

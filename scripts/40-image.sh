@@ -26,7 +26,7 @@ log "create sparse image $img size=$ROOTFS_IMAGE_SIZE"
 rm -f "$img" "$img.zst"
 truncate -s "$ROOTFS_IMAGE_SIZE" "$img"
 log "mkfs.ext4 -L $LINUX_FS_LABEL -d rootfs"
-# 在 user namespace 内运行：rootfs 目录在宿主机属于 builduser，在 ns 内显示 uid/gid=0，
+# 在 user namespace 内运行：rootfs 目录在宿主机属于构建用户，在 ns 内显示 uid/gid=0，
 # 这样 mkfs.ext4 写入的 inode 属主才是真正的 0。
 unshare -r -m --fork mkfs.ext4 -q -F -L "$LINUX_FS_LABEL" -m 0 -d "$ROOTFS_DIR" "$img"
 log "verify inode ownership and label"

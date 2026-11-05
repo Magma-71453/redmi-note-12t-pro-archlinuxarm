@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# 只读验证 Test 产物；不会访问/修改真机分区，也不会执行 fastboot。
+# 只读验证 Test 产物；不会访问/修改该设备分区，也不会执行 fastboot。
 set -uo pipefail
 source "$(dirname "$0")/00-env.sh"
 

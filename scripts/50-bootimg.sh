@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 # 从仓库内固化的 kernel asset（当前为 7.2.10++）重新打包 boot_b / vendor_boot_b。
-# 结果与上一轮已验证的 boot-pearl-linux-final-v4.img / vendor_boot-pearl-linux-final.img
+# 结果与过往迭代已验证的 boot-pearl-linux-final-v4.img / vendor_boot-pearl-linux-final.img
 # 字节级一致（脚本会校验）。
 set -euo pipefail
 source "$(dirname "$0")/00-env.sh"
@@ -32,13 +32,18 @@ log "validate output"
 unpack_bootimg --boot_img "$OUT/boot_b-Test.img" --format info > "$OUT/boot_b-Test.info.txt"
 unpack_bootimg --boot_img "$OUT/vendor_boot_b-Test.img" --format info > "$OUT/vendor_boot_b-Test.info.txt"
 
+# 可选的字节级比对基准（外部固件/镜像资源目录，见 README 的「外部固件与镜像资源目录」一节）
 ref_boot="$PEARL_LINUX_MEDIA_DIR/boot-pearl-linux-final-v4.img"
 ref_vendor="$PEARL_LINUX_MEDIA_DIR/vendor_boot-pearl-linux-final.img"
 if [ -f "$ref_boot" ]; then
   cmp -s "$OUT/boot_b-Test.img" "$ref_boot" && log "boot_b-Test == known-good final-v4" || die "boot_b-Test differs from known-good reference"
+else
+  log "WARN: 未找到可选比对基准 boot-pearl-linux-final-v4.img，跳过字节级比对"
 fi
 if [ -f "$ref_vendor" ]; then
   cmp -s "$OUT/vendor_boot_b-Test.img" "$ref_vendor" && log "vendor_boot_b-Test == known-good final" || die "vendor_boot_b-Test differs from known-good reference"
+else
+  log "WARN: 未找到可选比对基准 vendor_boot-pearl-linux-final.img，跳过字节级比对"
 fi
 
 ( cd "$REPO" && sha256sum "${OUT#"$REPO"/}/boot_b-Test.img" "${OUT#"$REPO"/}/vendor_boot_b-Test.img" > "${OUT#"$REPO"/}/boot-SHA256SUMS" )

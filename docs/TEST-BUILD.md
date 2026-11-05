@@ -25,6 +25,8 @@
 active+successful。**受保护分区（lk/md1img/nv/userdata/super 等）不会被写**。
 回 Android：`scripts/restore-android-a.sh --yes`。
 
+脚本依赖的外部固件与镜像资源目录约定见 README 的「外部固件与镜像资源目录」。
+
 ## 当前系统状态（Test）
 
 - `uname -r`：`7.2.10++`

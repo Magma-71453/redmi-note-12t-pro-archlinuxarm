@@ -5,7 +5,7 @@
 
 ## 1. 为什么必须改内核
 
-本机充电 IC 是 **MT6375**（`mt6375-chg` 驱动，power_supply 名 `mtk-master-charger`），
+该设备充电 IC 是 **MT6375**（`mt6375-chg` 驱动，power_supply 名 `mtk-master-charger`），
 电量计是 **bq28z610**（`bq28z610-0`）。
 
 设备树里该节点带 `mediatek,tcpm-managed;`，驱动因此进入 **TCPM 托管模式**：
@@ -108,7 +108,7 @@ dbclient ... 'sudo dd if=boot_b-new.img of=/dev/disk/by-partlabel/boot_b bs=1M c
 sudo /root/recovery/rollback-boot.sh      # 校验 a6efd4ca… 后写回原始 boot_b
 ```
 
-本机备份在 `build/boot-backup/`（boot_b / vendor_boot_b / dtbo_b / vbmeta_b / boot_a，含 SHA256SUMS）。
+该设备备份在 `build/boot-backup/`（boot_b / vendor_boot_b / dtbo_b / vbmeta_b / boot_a，含 SHA256SUMS）。
 
-> kexec 免刷机验证在本机上**不可行**：`kexec -e` 后设备起不来（initramfs 依赖 LK 传入的
+> kexec 免刷机验证在该设备上**不可行**：`kexec -e` 后设备起不来（initramfs 依赖 LK 传入的
 > `debug_ext.initrd_size`，kexec 自建 FDT 绕过了这段）。必须走刷 boot_b 的正路。

@@ -4,7 +4,7 @@
 # 用法:
 #   scripts/flash-test.sh --yes               # 刷 Test Linux（默认）
 #   scripts/flash-test.sh --yes --stock-b     # 只刷原厂 B 启动链，用于验证 B 槽是否健康
-#   scripts/flash-test.sh --yes --stock-vendor-boot  # 用原厂 vendor_boot_b(DTBO table)+我们的 kernel
+#   scripts/flash-test.sh --yes --stock-vendor-boot  # 用原厂 vendor_boot_b(DTBO table)+该仓库构建的 kernel
 #   scripts/flash-test.sh --yes --lineage-dtbo       # 用 A 槽正在使用的 LineageOS dtbo.img
 #   scripts/flash-test.sh --yes --no-erase    # 不执行 fastboot erase（不推荐）
 #   scripts/flash-test.sh --yes --no-avb      # 使用小镜像（旧行为，不推荐）
@@ -53,9 +53,24 @@ if [ "$ASSUME_YES" -ne 1 ]; then
   exit 2
 fi
 
-FLASH_DIR="$PEARL_MEDIA_DIR"
-REF_BOOT="$FLASH_DIR/2-Linux启动-slotB"
-REF_RECOVERY="$FLASH_DIR/3-原厂分区备份"
+# 外部固件/镜像资源目录（可用同名环境变量覆盖；默认相对仓库根）。
+# 目录内容约定见 README 的「外部固件与镜像资源目录」一节。
+FLASH_DIR="${PEARL_MEDIA_DIR:-$DOWNLOADS/pearl-media}"
+REF_BOOT="${PEARL_LINUX_MEDIA_DIR:-$FLASH_DIR/linux-slot-b}"
+REF_RECOVERY="${PEARL_BACKUP_DIR:-$FLASH_DIR/backup}"
+LIN_FASTBOOT_DIR="${PEARL_FASTBOOT_DIR:-$FLASH_DIR/fastboot-lineage}"
+
+# need_file <path> <local|media>：缺失时给出对应提示。
+need_file() {
+  [ -f "$1" ] && return 0
+  if [ "$2" = "media" ]; then
+    echo "ERROR: 缺少外部固件/镜像资源: $1" >&2
+    echo "       需先准备外部固件/镜像资源目录，见 README 的外部固件与镜像资源目录一节" >&2
+  else
+    echo "ERROR: 缺少构建产物: $1" >&2
+  fi
+  exit 1
+}
 LOG="$LOGS/flash-test-$(date -u +%Y%m%d-%H%M%S).log"
 mkdir -p "$LOGS"
 exec > >(tee -a "$LOG") 2>&1
@@ -129,10 +144,10 @@ if [ "$STOCK_B" -eq 0 ] && [ "$USE_AVB" -eq 1 ] && [ ! -f "$OUT/avb/boot_b-Test-
   "$REPO/scripts/55-bootimg-avb.sh"
 fi
 if [ "$STOCK_B" -eq 1 ]; then
-  BOOT_IMG="$REF_RECOVERY/boot_b.img"
-  VENDOR_BOOT_IMG="$REF_RECOVERY/vendor_boot_b.img"
-  DTBO_IMG="$REF_RECOVERY/dtbo_b.img"
-  VBMETA_B_IMG="$REF_RECOVERY/vbmeta_b.img"
+  BOOT_IMG="$REF_RECOVERY/boot_b.img";               BOOT_SRC=media
+  VENDOR_BOOT_IMG="$REF_RECOVERY/vendor_boot_b.img"; VENDOR_BOOT_SRC=media
+  DTBO_IMG="$REF_RECOVERY/dtbo_b.img";               DTBO_SRC=media
+  VBMETA_B_IMG="$REF_RECOVERY/vbmeta_b.img";         VBMETA_B_SRC=media
   VBMETA_SYS_IMG=""
   VBMETA_VENDOR_IMG=""
   ROOTFS_IMG=""
@@ -142,33 +157,38 @@ else
   else
     BOOT_IMG="$OUT/boot_b-Test.img"
   fi
+  BOOT_SRC=local
   if [ "$STOCK_VENDOR_BOOT" -eq 1 ]; then
     # 原厂 vendor_boot_b 的 dtb 字段是 Android DTBO table；LK 期望这个格式。
-    VENDOR_BOOT_IMG="$REF_RECOVERY/vendor_boot_b.img"
+    VENDOR_BOOT_IMG="$REF_RECOVERY/vendor_boot_b.img"; VENDOR_BOOT_SRC=media
   elif [ "$USE_AVB" -eq 1 ]; then
-    VENDOR_BOOT_IMG="$OUT/avb/vendor_boot_b-Test-avb.img"
+    VENDOR_BOOT_IMG="$OUT/avb/vendor_boot_b-Test-avb.img"; VENDOR_BOOT_SRC=local
   else
-    VENDOR_BOOT_IMG="$OUT/vendor_boot_b-Test.img"
+    VENDOR_BOOT_IMG="$OUT/vendor_boot_b-Test.img"; VENDOR_BOOT_SRC=local
   fi
   if [ "$LINEAGE_DTBO" -eq 1 ]; then
-    DTBO_IMG="$PEARL_FASTBOOT_DIR/images/dtbo.img"
+    DTBO_IMG="$LIN_FASTBOOT_DIR/images/dtbo.img"
   else
     DTBO_IMG="$REF_BOOT/dtbo_b-stock.img"
   fi
+  DTBO_SRC=media
   VBMETA_B_IMG="$REF_BOOT/vbmeta_b-disabled-8m.img"
   VBMETA_SYS_IMG="$REF_BOOT/vbmeta_system_b-disabled.img"
   VBMETA_VENDOR_IMG="$REF_BOOT/vbmeta_vendor_b-disabled.img"
   ROOTFS_IMG="$OUT/$ROOTFS_IMAGE_NAME"
 fi
-[ -f "$BOOT_IMG" ] || { echo "missing $BOOT_IMG"; exit 1; }
-[ -f "$VENDOR_BOOT_IMG" ] || { echo "missing $VENDOR_BOOT_IMG"; exit 1; }
-[ -f "$DTBO_IMG" ] || { echo "missing $DTBO_IMG"; exit 1; }
-[ -f "$VBMETA_B_IMG" ] || { echo "missing $VBMETA_B_IMG"; exit 1; }
+need_file "$BOOT_IMG" "$BOOT_SRC"
+need_file "$VENDOR_BOOT_IMG" "$VENDOR_BOOT_SRC"
+need_file "$DTBO_IMG" "$DTBO_SRC"
+need_file "$VBMETA_B_IMG" "${VBMETA_B_SRC:-media}"
 if [ "$DO_ROOTFS" -eq 1 ] && [ ! -f "$ROOTFS_IMG" ]; then
-  echo "missing $ROOTFS_IMG"; exit 1
+  echo "ERROR: 缺少构建产物: $ROOTFS_IMG" >&2; exit 1
+fi
+if [ "$DO_MISC" -eq 1 ]; then
+  need_file "$REF_BOOT/misc-slot-b.img" media
 fi
 
-# 清掉 B 槽上一轮遗留数据
+# 清掉 B 槽过往迭代遗留数据
 if [ "$DO_ERASE" -eq 1 ]; then
   ERASE_PARTS=(boot_b vendor_boot_b dtbo_b vbmeta_b misc)
   if [ "$STOCK_B" -eq 0 ]; then
@@ -190,10 +210,16 @@ if [ -n "$VBMETA_SYS_IMG" ] && [ -f "$VBMETA_SYS_IMG" ]; then
   # 4K disabled vbmeta 需要补到分区尺寸，避免分区里残留原厂数据
   make_fullsize "$VBMETA_SYS_IMG" vbmeta_system_b "$BUILD/vbmeta_system_b-disabled-full.img"
   flash_part vbmeta_system_b "$BUILD/vbmeta_system_b-disabled-full.img"
+elif [ -n "$VBMETA_SYS_IMG" ]; then
+  echo "WARN: 缺少外部固件/镜像资源: $VBMETA_SYS_IMG（跳过 vbmeta_system_b）" >&2
+  echo "      需先准备外部固件/镜像资源目录，见 README 的外部固件与镜像资源目录一节" >&2
 fi
 if [ -n "$VBMETA_VENDOR_IMG" ] && [ -f "$VBMETA_VENDOR_IMG" ]; then
   make_fullsize "$VBMETA_VENDOR_IMG" vbmeta_vendor_b "$BUILD/vbmeta_vendor_b-disabled-full.img"
   flash_part vbmeta_vendor_b "$BUILD/vbmeta_vendor_b-disabled-full.img"
+elif [ -n "$VBMETA_VENDOR_IMG" ]; then
+  echo "WARN: 缺少外部固件/镜像资源: $VBMETA_VENDOR_IMG（跳过 vbmeta_vendor_b）" >&2
+  echo "      需先准备外部固件/镜像资源目录，见 README 的外部固件与镜像资源目录一节" >&2
 fi
 
 if [ "$DO_ROOTFS" -eq 1 ]; then

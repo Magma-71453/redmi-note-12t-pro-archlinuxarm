@@ -5,14 +5,18 @@
 set -uo pipefail
 cd -- "$(dirname "$0")/.."
 REPO="$PWD"
-LIN="${LIN:-$PEARL_FASTBOOT_DIR}"
+# 外部固件/镜像资源目录（可用同名环境变量覆盖；默认相对仓库根）。
+# 目录内容约定见 README 的「外部固件与镜像资源目录」一节。
+MEDIA="${PEARL_MEDIA_DIR:-$REPO/downloads/pearl-media}"
+FASTBOOT_DIR="${PEARL_FASTBOOT_DIR:-$MEDIA/fastboot-lineage}"
+LIN="${LIN:-$FASTBOOT_DIR}"
 FASTBOOT="${FASTBOOT:-fastboot}"
 APPLY=0
 [ "${1:-}" = "--yes" ] && APPLY=1
 
 die() { echo "ERROR: $*" >&2; exit 1; }
 command -v "$FASTBOOT" >/dev/null 2>&1 || die "fastboot not found"
-[ -d "$LIN/images" ] || die "missing $LIN/images"
+[ -d "$LIN/images" ] || die "缺少外部固件/镜像资源: $LIN/images（需先准备外部固件/镜像资源目录，见 README 的外部固件与镜像资源目录一节）"
 "$FASTBOOT" devices | grep -q . || die "no fastboot device"
 
 guard_b() {
@@ -30,7 +34,11 @@ EARLY=(apusys audio_dsp ccu dpm gpueb gz logo mcf_ota mcupm mvpu_algo pi_img scp
 echo "只补 B 槽早期固件，不碰 lk/md1img/nv/preloader/userdata/super/A 槽"
 for part in "${EARLY[@]}"; do
   img="$LIN/images/$part.img"
-  [ -f "$img" ] || { echo "SKIP missing image: $img"; continue; }
+  if [ ! -f "$img" ]; then
+    echo "SKIP 缺少镜像: $img"
+    echo "     需先准备外部固件/镜像资源目录，见 README 的外部固件与镜像资源目录一节"
+    continue
+  fi
   target="${part}_b"
   guard_b "$target"
   echo "==> flash $target <- $img"

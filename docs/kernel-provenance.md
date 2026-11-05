@@ -9,7 +9,7 @@
 只有 `mt6893-pinfunc.h` / `mt6878-pinfunc.h`，也没有 MTK CCCI、CONFIG_MTK_IMGSENSOR 等
 设备驱动。直接编译出的 Image 不可能在 Redmi Note 12T Pro 上启动。
 
-真机 `boot_b` 中已有的内核自报：
+该设备 `boot_b` 中已有的内核自报：
 
 ```text
 Linux version 7.2.9+ (root@<build-host>)
@@ -32,7 +32,7 @@ CONFIG_EXT4_FS=y
 CONFIG_F2FS_FS=y
 ```
 
-该二进制与 `/usr/lib/modules/7.2.9+` 的 1544 个模块来自上一轮 `pearl-armbian`
+该二进制与 `/usr/lib/modules/7.2.9+` 的 1544 个模块来自过往迭代的 `pearl-armbian`
 构建（构建目录已不存在，但刷机包 `$PEARL_MEDIA_DIR/` 中的
 `boot-pearl-linux-final-v4.img` / `initramfs-final.cpio.lz4` /
 `vendor_boot-pearl-linux-final.img` 是已知能启动的 final v4 版本）。
@@ -89,10 +89,10 @@ CONFIG_F2FS_FS=y
   `CONFIG_ARM64_VA_BITS_48=y`、`CONFIG_ARM64_PA_BITS_48=y`，关闭
   `CONFIG_ARM64_LPA2`。`uname -r` 仍为 `7.2.10++`。
 - 验证镜像：`out/Test/avb/boot_b-Test-48va-avb.img`（旧 52-bit boot 镜像保留
-  可回滚）。真机验证：panthor 正常、`vulkaninfo` 识别 Mali-G610/PanVK、
+  可回滚）。该设备验证：panthor 正常、`vulkaninfo` 识别 Mali-G610/PanVK、
   Ollama 100% GPU（batch 上限需限制为 4，见 `docs/GPU-VULKAN-OLLAMA.md`）。
 
-### 2026-10-15 深夜：LK 内存窗口 reserve（kernel #10）
+### 2026-10-15：LK 内存窗口 reserve（kernel #10）
 
 - 现象：48-bit VA + batch=4 后，较大模型/内存压力下仍会 `clear_page` panic
   重启；pstore 定位到 phys `0xdb870000`，另有 UFS DMA cache 维护在

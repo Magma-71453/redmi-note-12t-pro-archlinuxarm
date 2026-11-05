@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# 从真机现有 linux 分区恢复 7.2.9+ 模块 tar（需要 adb + Magisk/root）。
+# 从该设备现有 linux 分区恢复 7.2.9+ 模块 tar（需要 adb + Magisk/root）。
 # 这是给“原始模块 tar 丢失时”用的恢复脚本；当前仓库的 out 镜像已包含模块。
 set -euo pipefail
 source "$(dirname "$0")/00-env.sh"

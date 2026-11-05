@@ -47,11 +47,76 @@ config/     构建配置与 rootfs 配置文件
 scripts/    可复现构建/打包/刷写脚本
 docs/       设计、分区、引导、桌面布局、内核来源
 artifacts/  体积可控的交付产物（内核、boot/vendor 镜像、校验和）
-out/        本机镜像输出（gitignore）
+out/        本地构建产物输出（gitignore）
 build/      编译工作区（gitignore）
 logs/       构建日志（gitignore）
-downloads/  上游源码/rootfs 缓存（gitignore）
+downloads/  上游源码/rootfs 缓存与外部固件资源（gitignore）
 ```
+
+## 外部固件与镜像资源目录
+
+刷机与恢复脚本需要一批外部固件、ROM 提取物和分区镜像。这些文件体积大、来源各异，
+不适合放进 Git 仓库，因此统一由使用者自行准备，放在仓库根目录下的
+`downloads/pearl-media/`（该目录已被 `.gitignore` 忽略，不纳入版本管理）。
+
+脚本通过下面这组环境变量定位这些资源，每一项都可以用同名环境变量覆盖，
+例如把 `PEARL_MEDIA_DIR` 指到别处，或把某一项指向外置存储：
+
+| 变量 | 默认值 | 用途 |
+| --- | --- | --- |
+| `PEARL_MEDIA_DIR` | `downloads/pearl-media` | 外部资源根目录 |
+| `PEARL_ROM_DIR` | `$PEARL_MEDIA_DIR/rom` | 官方 ROM 提取物 |
+| `PEARL_BACKUP_DIR` | `$PEARL_MEDIA_DIR/backup` | 原厂分区备份 |
+| `PEARL_LINUX_MEDIA_DIR` | `$PEARL_MEDIA_DIR/linux-slot-b` | Linux 启动链参考镜像 |
+| `PEARL_ANDROID_A_DIR` | `$PEARL_MEDIA_DIR/android-recovery-slot-a` | Android A 槽恢复镜像 |
+| `PEARL_FASTBOOT_DIR` | `$PEARL_MEDIA_DIR/fastboot-lineage` | 早期固件镜像 |
+
+目录结构：
+
+```text
+downloads/pearl-media/
+├── rom/                      # 官方 ROM 提取物
+│   ├── images/
+│   │   ├── preloader_pearl.bin
+│   │   └── download_agent/
+│   │       └── DA_BR.bin
+├── backup/                   # 原厂分区备份
+│   ├── boot_b.img
+│   ├── vendor_boot_b.img
+│   ├── dtbo_b.img
+│   ├── vbmeta_b.img
+│   └── misc.img
+├── linux-slot-b/             # Linux 启动链参考镜像
+│   ├── dtbo_b-stock.img
+│   ├── vbmeta_b-disabled-8m.img
+│   ├── vbmeta_system_b-disabled.img
+│   ├── vbmeta_vendor_b-disabled.img
+│   ├── misc-slot-b.img
+│   ├── boot-pearl-linux-final-v4.img
+│   └── vendor_boot-pearl-linux-final.img
+├── android-recovery-slot-a/  # Android A 槽恢复镜像
+│   ├── misc-slot-a.img
+│   ├── boot_a.img
+│   ├── vendor_boot_a.img
+│   ├── dtbo_a.img
+│   ├── vbmeta_a.img
+│   └── boot_para.img
+└── fastboot-lineage/         # 早期固件镜像
+    └── images/*.img
+```
+
+各文件用途：
+
+- `rom/images/preloader_pearl.bin`、`rom/images/download_agent/DA_BR.bin`：
+  官方 ROM 中提取的引导器件，供 MTK 刷写工具使用。
+- `backup/*.img`：原厂 B 槽分区备份，用于对照原厂布局或恢复出厂 B 槽。
+- `linux-slot-b/*.img`：Linux 启动链所需的参考镜像 —— 原厂 `dtbo`、禁用校验的
+  `vbmeta*`、槽位标记 `misc`，以及已知可启动的 final v4 `boot`/`vendor_boot`。
+- `android-recovery-slot-a/*.img`：Android A 槽恢复所需的槽位镜像与 `boot_para`
+  分区镜像，用于把设备退回 Android。
+- `fastboot-lineage/images/*.img`：早期固件分区镜像，供 fastboot 刷写使用。
+
+> 该目录的内容需要自行从官方 ROM 与设备备份中准备；仓库既不提供也不追踪这些文件。
 
 ## 构建命令（概要）
 

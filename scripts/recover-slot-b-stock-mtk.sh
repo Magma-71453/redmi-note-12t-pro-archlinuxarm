@@ -8,10 +8,25 @@ if [ -f "$REPO/build/mtk-venv" ]; then
 fi
 REPO="$(cd "$(dirname "$0")/.." && pwd)"
 MTK="${MTK:-$REPO/build/mtk-venv/bin/mtk}"
-PRELOADER="${PRELOADER:-$PEARL_ROM_DIR/images/preloader_pearl.bin}"
-LOADER="${LOADER:-$PEARL_ROM_DIR/images/DA_BR.bin}"
-SRC="${SRC:-$PEARL_BACKUP_DIR}"
-for f in "$MTK" "$PRELOADER" "$LOADER"; do [ -f "$f" ] || { echo "missing $f"; exit 1; }; done
+# 外部固件/镜像资源目录（可用同名环境变量覆盖；默认相对仓库根）。
+# 目录内容约定见 README 的「外部固件与镜像资源目录」一节。
+MEDIA="${PEARL_MEDIA_DIR:-$REPO/downloads/pearl-media}"
+ROM_DIR="${PEARL_ROM_DIR:-$MEDIA/rom}"
+BACKUP_DIR="${PEARL_BACKUP_DIR:-$MEDIA/backup}"
+ANDROID_A_DIR="${PEARL_ANDROID_A_DIR:-$MEDIA/android-recovery-slot-a}"
+PRELOADER="${PRELOADER:-$ROM_DIR/images/preloader_pearl.bin}"
+LOADER="${LOADER:-$ROM_DIR/images/download_agent/DA_BR.bin}"
+SRC="${SRC:-$BACKUP_DIR}"
+
+need_media() {
+  [ -f "$1" ] && return 0
+  echo "ERROR: 缺少外部固件/镜像资源: $1" >&2
+  echo "       需先准备外部固件/镜像资源目录，见 README 的外部固件与镜像资源目录一节" >&2
+  exit 1
+}
+[ -f "$MTK" ] || { echo "ERROR: 缺少 mtkclient: $MTK" >&2; exit 1; }
+need_media "$PRELOADER"
+need_media "$LOADER"
 if ! lsusb | grep -q '0e8d:2000'; then
   if [ "${1:-}" = "--wait" ]; then
     echo "waiting for preloader mode 0e8d:2000 ..."
@@ -22,8 +37,15 @@ if ! lsusb | grep -q '0e8d:2000'; then
 fi
 set -e
 for p in boot_b vendor_boot_b dtbo_b vbmeta_b boot_para; do
-  img="$SRC/$p.img"
-  [ -f "$img" ] || { echo "skip missing $img"; continue; }
+  case "$p" in
+    boot_para) img="$ANDROID_A_DIR/$p.img" ;;
+    *)         img="$SRC/$p.img" ;;
+  esac
+  if [ ! -f "$img" ]; then
+    echo "SKIP 缺少镜像: $img"
+    echo "     需先准备外部固件/镜像资源目录，见 README 的外部固件与镜像资源目录一节"
+    continue
+  fi
   echo "==> write $p from $img"
   "$MTK" w "$p" "$img" --preloader "$PRELOADER" --loader "$LOADER"
 done

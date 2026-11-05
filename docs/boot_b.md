@@ -1,4 +1,4 @@
-# boot_b 引导设计（Test 已打包，待实机刷写验证）
+# boot_b 引导设计（Test 已打包，待在设备上刷写验证）
 
 ## 目标与实现
 
@@ -15,9 +15,9 @@
 - `artifacts/Test/vendor_boot_b-Test.img`
   sha256 `0711787da078283c41b6c5277d1c211ee59e142e28ddf7ea8e1eca196b5cb26e`
 
-两者与上一轮已验证的 final-v4 镜像逐字节一致。
+两者与过往迭代已验证的 final-v4 镜像逐字节一致。
 
-## 刷写（必须用户确认后执行）
+## 刷写（必须显式确认后执行）
 
 ```bash
 scripts/flash-test.sh --yes

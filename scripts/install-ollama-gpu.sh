@@ -24,7 +24,7 @@ install -m755 "$ARTIFACT/bin/ollama" "$ROOTFS/usr/local/bin/ollama"
 cp -a "$ARTIFACT/lib/ollama/." "$ROOTFS/usr/local/lib/ollama/"
 
 # PanVK 对长 prompt 的单张图会在 vkEndCommandBuffer 返回 VK_ERROR_OUT_OF_DEVICE_MEMORY；
-# 真机实测把 batch/ubatch 限制到 4 可稳定工作。这里用 wrapper 覆盖 Ollama 传入的
+# 该设备实测把 batch/ubatch 限制到 4 可稳定工作。这里用 wrapper 覆盖 Ollama 传入的
 # 默认 -b 512/-ub 512（llama.cpp 参数后者覆盖前者）。
 install -m755 "$ARTIFACT/lib/ollama/llama-server" \
   "$ROOTFS/usr/local/lib/ollama/llama-server.real"

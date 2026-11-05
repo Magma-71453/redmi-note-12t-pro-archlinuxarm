@@ -20,3 +20,26 @@
 hwparam.json
 __pycache__/
 *.pyc
+
+# 凭据与密钥类文件：避免误提交个人凭据、私钥、令牌等敏感内容
+.env
+*.env
+id_rsa
+id_ed25519
+id_ecdsa
+id_ed25519_sk
+*.ppk
+.netrc
+.npmrc
+*.pfx
+*.keystore
+*.jks
+*.ovpn
+*.kdbx
+shadow
+shadow-
+*credentials*
+*.secret
+*.secrets
+*.token
+*tokens.json

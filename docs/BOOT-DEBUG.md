@@ -17,7 +17,7 @@
 | `vbmeta_b` | 8 MiB，AVB0 header，包含 boot / vbmeta_system / vbmeta_vendor 链 |
 | `misc` | 4 MiB，A/B slot BCB |
 
-之前 Test 刷写流程的问题：
+早期 Test 刷写流程的问题：
 
 1. `boot_b` 只有 33 MB、`vendor_boot_b` 只有 13 MB，镜像**没有 AVB footer**；
 2. `fastboot flash` 只覆盖分区开头，分区尾部仍残留原厂 `AVBf`/旧数据；
@@ -25,21 +25,24 @@
 4. 没有先 `fastboot erase` B 槽 boot 相关分区。
 
 这会让 MTK LK 读到的 boot/vendor_boot 与尾部 AVB 元数据不一致，进而复位到
-Preloader/BROM。用户“先清空 B 槽缓存”的判断是正确的。
+Preloader/BROM。过往讨论中「先清空 B 槽缓存」的判断是正确的。
 
 ## 新流程
 
 `scripts/flash-test.sh --yes` 现在默认：
 
+> 下面的 `$PEARL_LINUX_MEDIA_DIR` 指向使用者自行准备的外部资源目录，
+> 目录约定见 README 的「外部固件与镜像资源目录」。
+
 ```text
 erase boot_b vendor_boot_b dtbo_b vbmeta_b vbmeta_system_b vbmeta_vendor_b misc
-flash boot_b         out/Test/avb/boot_b-Test-avb.img           (64M + AVB footer)
-flash vendor_boot_b  out/Test/avb/vendor_boot_b-Test-avb.img    (64M + AVB footer)
-flash dtbo_b         $PEARL_LINUX_MEDIA_DIR/2-Linux启动-slotB/dtbo_b-stock.img (32M 原厂)
-flash vbmeta_b       $PEARL_LINUX_MEDIA_DIR/vbmeta_b-disabled-8m.img        (8M disabled)
+flash boot_b        out/Test/avb/boot_b-Test-avb.img                  (64M + AVB footer)
+flash vendor_boot_b out/Test/avb/vendor_boot_b-Test-avb.img           (64M + AVB footer)
+flash dtbo_b        $PEARL_LINUX_MEDIA_DIR/dtbo_b-stock.img           (32M 原厂)
+flash vbmeta_b      $PEARL_LINUX_MEDIA_DIR/vbmeta_b-disabled-8m.img   (8M disabled)
 flash vbmeta_system_b/vbmeta_vendor_b disabled + pad to partition
-flash linux          out/Test/pearl-linux-rootfs-Test.img       (10G ext4)
-flash misc           $PEARL_LINUX_MEDIA_DIR/misc-slot-b.img                 (最后写)
+flash linux         out/Test/pearl-linux-rootfs-Test.img              (10G ext4)
+flash misc          $PEARL_LINUX_MEDIA_DIR/misc-slot-b.img            (最后写)
 ```
 
 `boot_b` / `vendor_boot_b` 的 AVB footer 由 `scripts/55-bootimg-avb.sh`

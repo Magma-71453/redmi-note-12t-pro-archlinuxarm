@@ -9,7 +9,7 @@ cd "$KSRC"
 # 应用 $REPO/patches/*.patch（幂等）：
 #   - 48-bit VA/PA 之后仍需修复 LK 内存窗口中无线性映射的 RAM 区，
 #     否则 buddy 分配器把坏页发给任意进程，clear_page() 会 kernel panic。
-#   - 这些补丁已在 7.2.10++ #10 真机验证；详见 docs/GPU-VULKAN-OLLAMA.md。
+#   - 这些补丁已在 7.2.10++ #10 该设备验证；详见 docs/GPU-VULKAN-OLLAMA.md。
 if [ "${KERNEL_SKIP_PATCHES:-0}" != 1 ]; then
   for p in "$REPO"/patches/*.patch; do
     [ -e "$p" ] || continue

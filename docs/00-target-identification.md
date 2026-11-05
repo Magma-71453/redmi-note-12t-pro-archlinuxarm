@@ -1,6 +1,6 @@
 # 目标识别记录
 
-用户文字：Redmi Note 12 T Pro，代号写作 `elish`，分区 `/dev/sdc88:linux`、`/dev/sdc86:userdata`，
+过往需求描述：Redmi Note 12 T Pro，代号写作 `elish`，分区 `/dev/sdc88:linux`、`/dev/sdc86:userdata`，
 Android 使用 `boot_a` 引导并挂载 userdata，希望 `boot_b` 引导 Linux。
 
 ADB 只读读数：

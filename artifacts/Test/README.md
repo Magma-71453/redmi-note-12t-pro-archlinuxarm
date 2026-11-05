@@ -18,7 +18,7 @@
   用 `ollama-vk-models` 创建 `phi4-mini-vk:3.8b`（`num_gpu=32`）后运行
 - 详见 `docs/GPU-VULKAN-OLLAMA.md`
 
-## 刷写顺序（需用户显式确认后执行）
+## 刷写顺序（需显式确认后执行）
 
 ```bash
 scripts/flash-test.sh --yes
